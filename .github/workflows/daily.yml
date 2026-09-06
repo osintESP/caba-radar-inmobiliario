@@ -1,0 +1,44 @@
+name: Ingesta diaria
+
+on:
+  schedule:
+    - cron: "0 13 * * *"  # ~10am ARG (UTC-3); el schedule de Actions es en UTC y no es puntual
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Instalar dependencias
+        run: uv sync --frozen
+
+      - name: Correr ingesta del día
+        env:
+          ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
+          ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
+          ML_REFRESH_TOKEN: ${{ secrets.ML_REFRESH_TOKEN }}
+          GH_SECRETS_PAT: ${{ secrets.GH_SECRETS_PAT }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: uv run python -m ingest.run_daily
+
+      - name: Commit de snapshot y latest.json
+        run: |
+          git config user.name "radar-inmobiliario-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/snapshots/ data/latest.json
+          git diff --cached --quiet && echo "Sin cambios, no se commitea." || git commit -m "snapshot $(date -u +%F)"
+          git push

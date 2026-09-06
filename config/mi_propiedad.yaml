@@ -1,0 +1,17 @@
+mi_propiedad:
+  barrio: "Monte Castro"
+  tipo: "departamento"
+  ambientes: 3
+  m2_cubiertos: 72
+  m2_total: 72
+  antiguedad: null          # completar
+  piso: null                # completar
+  ascensor: null            # completar
+  expensas_ars: null        # completar
+  precio_venta_max_usd: 130000    # tasación del corredor — el número real
+  precio_publicacion_usd: 140000  # ancla de negociación, NO es valor
+  estado_venta: "sin_publicar"
+escenarios:
+  optimista_usd: 134000
+  base_usd: 130000
+  conservador_usd: 123500

@@ -1,0 +1,15 @@
+costos:
+  comision_venta_pct: 0.03
+  comision_compra_pct: 0.03
+  iva_sobre_comision: 0.21
+  sellos_pct: 0.027               # CABA 2026 — confirmar vigencia
+  sellos_a_mi_cargo_pct: 0.5
+  escritura_pct: 0.02
+  gastos_fijos_usd: 1500
+  impuesto_transferencia_pct: 0.0 # DEPENDE DEL CASO — ver PLAN-radar-inmobiliario.md sección 2
+
+fx:
+  # Campo de la cotización "bolsa" (MEP) de dolarapi.com que se usa para convertir
+  # ARS -> USD. "venta" = cuántos ARS hacen falta para 1 USD (dirección de conversión
+  # que necesitamos). Auditable/ajustable acá, nunca hardcodeado en el código.
+  mep_price_field: "venta"

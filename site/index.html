@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar Inmobiliario — CABA oeste</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Radar Inmobiliario</h1>
+    <p class="subtitle">Vélez Sarsfield · Floresta · Monte Castro · anillo oeste — avisos de Mercado Libre</p>
+  </header>
+
+  <section id="status-banner" class="banner">Cargando…</section>
+
+  <section class="filters">
+    <label>
+      Barrio
+      <select id="filter-barrio"><option value="">Todos</option></select>
+    </label>
+    <label>
+      Tipo
+      <select id="filter-tipo"><option value="">Todos</option></select>
+    </label>
+  </section>
+
+  <table id="listings-table">
+    <thead>
+      <tr>
+        <th data-key="barrio" data-type="string">Barrio</th>
+        <th data-key="tipo" data-type="string">Tipo</th>
+        <th data-key="condicion" data-type="string">Condición</th>
+        <th data-key="ambientes" data-type="number">Amb.</th>
+        <th data-key="m2_cubiertos" data-type="number">m² cub.</th>
+        <th data-key="price_usd" data-type="number">Precio USD</th>
+        <th data-key="usd_m2" data-type="number">USD/m²</th>
+        <th data-key="expensas_ars" data-type="number">Expensas ARS</th>
+        <th data-key="antiguedad" data-type="number">Antig.</th>
+        <th data-key="piso" data-type="number">Piso</th>
+        <th data-key="ascensor" data-type="string">Ascensor</th>
+        <th data-key="captured_at" data-type="string">Capturado</th>
+        <th>Aviso</th>
+      </tr>
+    </thead>
+    <tbody id="listings-body">
+      <tr><td colspan="13">Sin datos todavía.</td></tr>
+    </tbody>
+  </table>
+
+  <script src="app.js"></script>
+</body>
+</html>

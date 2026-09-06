@@ -1,0 +1,28 @@
+[project]
+name = "caba-radar-inmobiliario"
+version = "0.1.0"
+description = "Monitoreo diario de avisos inmobiliarios (Zonaprop/Argenprop/Mercado Libre) en barrios del oeste de CABA."
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "pandas>=2.2",
+    "pyarrow>=16.0",
+    "pyyaml>=6.0",
+    "tenacity>=8.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "respx>=0.21",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ingest", "analysis"]
