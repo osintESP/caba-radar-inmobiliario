@@ -100,32 +100,61 @@ def run_snapshot(
 
     known = load_known_attributes(snapshots_dir)
     max_new_fetches = barrios_cfg.get("scraping", {}).get("max_new_detail_fetches_por_corrida", 250)
+
+    combos = [
+        (barrio_nombre, barrio_slug, tipo)
+        for barrio_nombre, barrio_slug in all_barrios(barrios_cfg)
+        for tipo in barrios_cfg["tipologias"]
+    ]
+    # Cupo PAREJO por combinación barrio x tipología. Sin esto, un barrio de
+    # alto volumen (ej. Flores) agota el cupo global entero y deja a los
+    # demás —incluida "propia", donde está la propiedad a vender— en cero
+    # el mismo día (pasó exactamente esto en la primera corrida real). El
+    # resto que sobra después de darle su piso a cada combo se reparte en
+    # orden de aparición (núcleo/propia primero, ver all_barrios), no
+    # round-robin, porque ese orden ya refleja la prioridad del plan.
+    per_combo_cap = max(1, max_new_fetches // len(combos)) if combos else 0
     new_fetches = 0
 
     client = meli_scraper.make_client()
     raw_records: list[dict[str, Any]] = []
+    pending_new: list[dict[str, Any]] = []  # avisos nuevos que no llegaron a enriquecerse en el primer paso
     try:
-        for barrio_nombre, barrio_slug in all_barrios(barrios_cfg):
-            for tipo in barrios_cfg["tipologias"]:
-                for summary in meli_scraper.search_barrio_tipo(client, barrio_nombre, barrio_slug, tipo):
-                    record = dict(summary)
-                    portal_id = record["portal_id"]
+        for barrio_nombre, barrio_slug, tipo in combos:
+            combo_new_fetches = 0
+            for summary in meli_scraper.search_barrio_tipo(client, barrio_nombre, barrio_slug, tipo):
+                record = dict(summary)
+                portal_id = record["portal_id"]
 
-                    if portal_id in known:
-                        record.update(known[portal_id])
-                    elif new_fetches < max_new_fetches:
-                        detail = meli_scraper.fetch_detail(client, record["url"])
-                        record.update(detail)
-                        new_fetches += 1
-                    # si no, el aviso queda sin atributos de detalle por hoy
-                    # (None, nunca imputado) y se reintenta mañana.
+                if portal_id in known:
+                    record.update(known[portal_id])
+                elif combo_new_fetches < per_combo_cap and new_fetches < max_new_fetches:
+                    detail = meli_scraper.fetch_detail(client, record["url"])
+                    record.update(detail)
+                    combo_new_fetches += 1
+                    new_fetches += 1
+                else:
+                    pending_new.append(record)  # candidato para el cupo sobrante
 
-                    record["raw_json"] = json.dumps(
-                        {**summary, **{f: record.get(f) for f in DETAIL_FIELDS}}, ensure_ascii=False
-                    )
-                    raw_records.append(record)
+                raw_records.append(record)
+
+        # Segundo paso: lo que sobró del cupo global (porque algún combo
+        # tenía menos avisos nuevos que su piso) se reparte entre los
+        # avisos que quedaron pendientes, en el mismo orden de prioridad.
+        for record in pending_new:
+            if new_fetches >= max_new_fetches:
+                break
+            detail = meli_scraper.fetch_detail(client, record["url"])
+            record.update(detail)
+            new_fetches += 1
     finally:
         client.close()
+
+    for record in raw_records:
+        record["raw_json"] = json.dumps(
+            {f: record.get(f) for f in ["portal_id", "url", "price_amount", "price_currency", *DETAIL_FIELDS]},
+            ensure_ascii=False,
+        )
 
     outliers_cfg = barrios_cfg.get("outliers", {})
     rows = normalize_batch(
