@@ -1,6 +1,11 @@
-"""Spike manual, correr UNA VEZ (a mano) antes de confiar en run_daily.py.
+"""Spike manual — **ya corrido, resultado: bloqueado** (ver `ingest/meli_client.py`
+y el addendum de `PLAN-radar-inmobiliario.md`). `/sites/MLA/search` devuelve
+403 para cualquier combinación de parámetros, con o sin token — no es un
+problema de categoría/barrio mal adivinado. Se deja el script por si en el
+futuro se consigue certificación de partner con Mercado Libre y vale la
+pena repetirlo.
 
-Objetivo: confirmar contra la API real de Mercado Libre, con un access_token
+Objetivo original: confirmar contra la API real de Mercado Libre, con un access_token
 válido, qué parámetros de búsqueda realmente filtran resultados —
 categoría de inmuebles, operación "venta", y barrio — porque el acceso
 anónimo cambió y las respuestas ya no traen `available_filters` para

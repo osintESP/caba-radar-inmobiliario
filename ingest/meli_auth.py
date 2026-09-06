@@ -1,5 +1,9 @@
 """OAuth de la API de Mercado Libre.
 
+**DORMIDO / SIN USO** por ahora — ver la nota al inicio de
+`ingest/meli_client.py`: la API de búsqueda/items está bloqueada para apps
+no certificadas. `ingest/run_daily.py` ya no llama a este módulo.
+
 Referencia: https://developers.mercadolibre.com.ar/es_ar/autenticacion-y-autorizacion
 (la doc pública devolvió 403 al intentar leerla programáticamente durante la
 planificación; este módulo sigue el flujo Authorization Code estándar de ML,

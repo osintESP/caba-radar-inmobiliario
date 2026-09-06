@@ -3,11 +3,46 @@
 Monitoreo diario de avisos de Mercado Libre en barrios del oeste de CABA
 (Vélez Sarsfield, Floresta, Monte Castro y anillo), para evaluar la venta de
 una propiedad y candidatas de compra. Ver `PLAN-radar-inmobiliario.md` para
-el diseño completo del proyecto.
+el diseño completo del proyecto (incluye un addendum al final documentando
+el cambio descripto abajo).
 
 **Esta implementación cubre F0 (ingesta + snapshots automáticos) y F1 (sitio
 estático)**. Todavía no hace dedupe, valuación, brecha neta, ni scrapers de
 Zonaprop/Argenprop — eso es F2+.
+
+## Nota importante: la ingesta es por scraping, no por la API de ML
+
+El plan original preveía usar la API oficial de Mercado Libre. Confirmado en
+vivo (septiembre 2026): `/sites/{site}/search` e `/items/{id}` devuelven 403
+para apps no certificadas, **con o sin token válido** — no es un problema de
+permisos mal tildados, es una restricción de plataforma (documentada en
+varios reportes públicos de otros desarrolladores con el mismo síntoma). La
+ingesta real (`ingest/meli_scraper.py`) scrapea la web pública de
+`inmuebles.mercadolibre.com.ar`, que sí es accesible con un User-Agent
+normal — mismo criterio que el plan ya aceptaba para Zonaprop/Argenprop.
+
+El código OAuth (`ingest/meli_auth.py`, `meli_auth_bootstrap.py`,
+`meli_client.py`, `meli_explore.py`) queda en el repo pero **sin uso**: si en
+algún momento conseguís certificación de partner con Mercado Libre
+(`vis-support@mercadolibre.com`), puede retomarse. Los secrets
+`ML_CLIENT_ID`/`ML_CLIENT_SECRET`/`ML_REFRESH_TOKEN`/`GH_SECRETS_PAT` ya
+cargados en el repo no se usan hoy — no hace falta borrarlos.
+
+### Cómo funciona el scraping (importante para entender el ritmo de datos)
+
+Dos niveles de costo muy distintos:
+- **Página de listado** (barata, 1 request cada 48 avisos): da precio,
+  vendedor, URL. Se recorre completa todos los días para cada barrio ×
+  tipología.
+- **Página de detalle de cada aviso** (cara, 1 request por aviso): da
+  m²/ambientes/baños/expensas/etc. — la variable de valuación. Algunos
+  barrios tienen muchísimo volumen (Flores: ~1.900 deptos en venta), así
+  que **solo se pide el detalle de avisos nuevos**, hasta un tope diario
+  (`config/barrios.yaml: scraping.max_new_detail_fetches_por_corrida`, 250
+  por defecto). Los avisos ya conocidos reusan sus atributos de detalle de
+  la corrida anterior (no cambian); los que no llegaron a enriquecerse hoy
+  quedan con esos campos en blanco y se reintentan mañana. Con el volumen
+  actual, completar el backlog inicial de barrios grandes toma varios días.
 
 ## Desarrollo local
 
@@ -23,7 +58,6 @@ uv run pytest
 1. Crear el repo público en GitHub y conectar este directorio:
    ```bash
    gh repo create <owner>/caba-radar-inmobiliario --public --source=. --remote=origin
-   git add -A && git commit -m "F0+F1: ingesta ML + sitio estático"
    git push -u origin main
    ```
    El repo es público porque GitHub Pages con cuenta Free no funciona sobre
@@ -35,81 +69,24 @@ uv run pytest
 
 2. Activar GitHub Pages: **Settings → Pages → Source → "GitHub Actions"**
    (no "Deploy from a branch" — la carpeta servida es `site/`, no `docs/`).
-   Con eso ya sabés tu URL de Pages: `https://<owner>.github.io/caba-radar-inmobiliario/`.
-   Hace falta antes del paso 5: Mercado Libre exige que el `redirect_uri`
-   sea HTTPS (rechaza `http://localhost`), así que se usa
-   `site/oauth-callback.html`, servido por Pages, en vez de un server local.
 
-3. Crear una app en [ML Developers](https://developers.mercadolibre.com.ar/devcenter)
-   y anotar `client_id` / `client_secret`. En el formulario de creación:
-   - **Redirect URIs:** `https://<owner>.github.io/caba-radar-inmobiliario/oauth-callback.html`
-   - **Flujos OAuth:** tildar **Authorization Code** y **Refresh Token**
-     (son los que usa `ingest/meli_auth.py`). *Client Credentials* no hace
-     falta. Dejar **PKCE** desactivado — el código no lo implementa todavía;
-     si el spike revela que ML lo exige para este tipo de app, se agrega.
-   - **Negocios:** tildar **VIS** (Vehículos, Inmuebles y Servicios — es la
-     unidad de negocio real de Mercado Libre bajo la que vive Inmuebles).
-     Dejar también "Mercado Libre" tildado si el formulario obliga a elegir
-     al menos una.
-   - **Permisos:** dejar todo en **"Sin acceso"** salvo lo que venga
-     forzado por defecto (p. ej. "Usuarios", necesario para autenticar).
-     No hace falta escritura sobre publicaciones, ventas, mensajes ni
-     facturación — esto solo *lee* avisos de terceros. Si el spike (paso 6)
-     da error de permisos al buscar, revisar esto.
-   - **Tópicos / Notificaciones callbacks URL:** dejar vacío — F0/F1 no
-     recibe webhooks, solo hace polling diario.
-
-4. Cargar secrets del repo:
-   ```bash
-   gh secret set ML_CLIENT_ID
-   gh secret set ML_CLIENT_SECRET
-   ```
-   Y un **PAT clásico dedicado** con scope `repo` (con expiración, p. ej.
-   90 días, desde github.com/settings/tokens) — lo usa el workflow diario
-   para rotar `ML_REFRESH_TOKEN` cuando Mercado Libre lo rota:
-   ```bash
-   gh secret set GH_SECRETS_PAT
-   ```
-
-5. Autorizar la app una vez, desde tu máquina (abre el navegador, y al
-   volver a la terminal pedís que pegues el `code` que te muestra
-   `oauth-callback.html`):
-   ```bash
-   ML_CLIENT_ID=... ML_CLIENT_SECRET=... uv run python -m ingest.meli_auth_bootstrap \
-       --redirect-uri https://<owner>.github.io/caba-radar-inmobiliario/oauth-callback.html
-   ```
-   Esto carga `ML_REFRESH_TOKEN` en GitHub Secrets automáticamente, y al
-   final imprime un `ML_ACCESS_TOKEN` de esa sesión para el paso 6.
-
-6. Correr el spike de descubrimiento de la API una vez, con ese access_token:
-   ```bash
-   ML_ACCESS_TOKEN=... uv run python -m ingest.meli_explore
-   ```
-   Revisar las fixtures volcadas en `tests/fixtures/` y ajustar
-   `ATTRIBUTE_IDS`/`SEARCH_CATEGORY` en `ingest/meli_client.py` y `snapshot.py`,
-   y los `meli_neighborhood_id` en `config/barrios.yaml`, con los valores
-   reales confirmados. Mercado Libre separa Inmuebles bajo la unidad de
-   negocio VIS — si `/sites/MLA/search` no devuelve resultados de Inmuebles,
-   este es el punto donde confirmar si hace falta un endpoint `/vis/...`
-   en su lugar (no documentado públicamente sin cuenta de developer).
-
-7. Completar en `config/mi_propiedad.yaml` los campos `null`: `antiguedad`,
+3. Completar en `config/mi_propiedad.yaml` los campos `null`: `antiguedad`,
    `piso`, `ascensor`, `expensas_ars`.
 
-8. Confirmar con un escribano la alícuota vigente de `sellos_pct` en
+4. Confirmar con un escribano la alícuota vigente de `sellos_pct` en
    `config/costos.yaml` (no bloquea F0/F1, ya queda copiado con la nota
    "confirmar vigencia").
 
-9. Disparar el workflow manualmente la primera vez (Actions → Ingesta diaria
+5. Disparar el workflow manualmente la primera vez (Actions → Ingesta diaria
    → Run workflow) para no esperar al cron.
 
 ## Estructura
 
 ```
-ingest/     ingesta + normalización + auth de Mercado Libre
+ingest/     scraping de ML + normalización (+ código OAuth dormido)
 analysis/   schema SQLite (derivado, no versionado) + armado de latest.json
 site/       sitio estático (sin build step)
 config/     parámetros, nunca hardcodeados en el código
 data/       snapshots diarios (parquet, versionados) + latest.json
-tests/      tests de normalización, sin red
+tests/      tests de scraping/normalización, sin red (fixtures/mocks)
 ```

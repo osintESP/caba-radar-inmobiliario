@@ -434,3 +434,41 @@ La pregunta 13 es la más valiosa de todas. Veinte cierres reales de la zona sup
 > 8. Tests de la capa de normalización.
 >
 > No implementes todavía: dedupe, valuación, brecha neta ni scrapers de Zonaprop/Argenprop. Al terminar, indicame cómo activar GitHub Pages y qué secrets cargar.
+
+---
+
+## 16. Addendum (2026-09-06): la API de Mercado Libre está bloqueada para apps no certificadas
+
+Al implementar F0 se descubrió, probando en vivo contra la API real con una
+app recién creada y un token válido, que **`/sites/{site}/search` e
+`/items/{id}` devuelven 403 tanto con token como sin él** — no es un
+problema de permisos de la app (se probó con distintas combinaciones), es
+una restricción de plataforma. Confirmado además por varios reportes
+públicos de otros desarrolladores con el mismo síntoma en 2025-2026, sin
+que el soporte esté disponible para apps no certificadas.
+
+**Impacto sobre este plan:**
+
+- La sección 7 ("Mercado Libre — primero. API oficial...") no es viable hoy
+  para una app personal. Se reemplaza por scraping de la web pública
+  (`inmuebles.mercadolibre.com.ar`), que sí responde con un User-Agent
+  normal — el mismo criterio de riesgo que esta sección ya aceptaba para
+  Zonaprop/Argenprop, adelantado a Mercado Libre.
+- La web pública **no expone m²/ambientes en la página de listado**, solo
+  en la página de detalle de cada aviso (tabla "Características
+  principales"). Con barrios de alto volumen (Flores: ~1.900 deptos en
+  venta) visitar el detalle de todos los avisos todos los días no es
+  sostenible. La implementación solo enriquece avisos nuevos por corrida,
+  con un tope diario configurable (`config/barrios.yaml`), y completa el
+  resto de forma incremental en corridas siguientes.
+- El `status` de la API (`active`/`paused`/`closed`), que la sección 3.2
+  (fuente A4) marcaba como "la única fuente hiperlocal automatizada", deja
+  de estar disponible vía API. La señal de "el aviso desapareció" pasa a
+  inferirse por ausencia en el scraping diario (el mismo mecanismo que ya
+  estaba previsto para Zonaprop/Argenprop).
+- El código OAuth (`ingest/meli_auth.py`, `meli_auth_bootstrap.py`,
+  `meli_client.py`) queda en el repo sin uso, por si en el futuro se
+  consigue certificación de partner con Mercado Libre
+  (`vis-support@mercadolibre.com`).
+
+Ver `README.md` para el detalle técnico completo del scraper.

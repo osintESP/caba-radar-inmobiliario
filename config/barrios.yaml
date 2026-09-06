@@ -1,33 +1,32 @@
 # Barrios monitoreados, por rol (PLAN-radar-inmobiliario.md, sección 5).
 #
-# meli_neighborhood_id se completa corriendo `uv run python -m ingest.meli_explore`
-# una vez que exista un access_token válido (ver README): ese spike confirma qué
-# parámetro de ubicación realmente filtra resultados en la API de Mercado Libre,
-# y vuelca acá los IDs reales. No inventar estos valores de memoria.
+# meli_slug: slug de URL de inmuebles.mercadolibre.com.ar, confirmado en vivo
+# (todos devolvieron 200 con avisos reales al momento de escribir esto).
+# Si Mercado Libre cambia sus URLs, ajustar acá — nunca en el código.
 
 nucleo:            # barrios de alerta activa
   - nombre: "Velez Sarsfield"
-    meli_neighborhood_id: null
+    meli_slug: "velez-sarsfield"
   - nombre: "Floresta"
-    meli_neighborhood_id: null
+    meli_slug: "floresta"
 
 propia:             # donde está la propiedad a vender
   - nombre: "Monte Castro"
-    meli_neighborhood_id: null
+    meli_slug: "monte-castro"
 
 anillo:             # solo para densificar el modelo, no genera alertas propias
   - nombre: "Flores"
-    meli_neighborhood_id: null
+    meli_slug: "flores"
   - nombre: "Villa Luro"
-    meli_neighborhood_id: null
+    meli_slug: "villa-luro"
   - nombre: "Villa Santa Rita"
-    meli_neighborhood_id: null
+    meli_slug: "villa-santa-rita"
   - nombre: "Villa Real"
-    meli_neighborhood_id: null
+    meli_slug: "villa-real"
   - nombre: "Versalles"
-    meli_neighborhood_id: null
+    meli_slug: "versalles"
   - nombre: "Villa del Parque"
-    meli_neighborhood_id: null
+    meli_slug: "villa-del-parque"
 
 tipologias:         # separadas siempre, nunca mezcladas en un comparable
   - "departamento"
@@ -37,3 +36,12 @@ tipologias:         # separadas siempre, nunca mezcladas en un comparable
 outliers:
   usd_m2_min: 400
   usd_m2_max: 8000
+
+scraping:
+  # La página de listado (barata: 1 request cada 48 avisos) se recorre
+  # completa todos los días. La página de DETALLE de cada aviso (cara: 1
+  # request por aviso) solo se pide para avisos nuevos, hasta este tope por
+  # corrida — algunos barrios de alto volumen (Flores: ~1.900 deptos en
+  # venta) tardarían horas y arriesgarían un bloqueo si se pidiera todo de
+  # una. El resto se completa en corridas siguientes (ver ingest/snapshot.py).
+  max_new_detail_fetches_por_corrida: 250

@@ -1,5 +1,13 @@
 """Cliente autenticado de la API de Mercado Libre.
 
+**DORMIDO / SIN USO** (septiembre 2026): confirmado en vivo que
+`/sites/{site}/search` e `/items/{id}` devuelven 403 para apps no
+certificadas, con o sin token — no es un problema de permisos de la app.
+La ingesta real usa `ingest/meli_scraper.py` (web pública). Este módulo
+queda documentado por si en el futuro se consigue certificación de partner
+con Mercado Libre (contacto: vis-support@mercadolibre.com) y vuelve a ser
+viable. Ver README.md y el addendum al final de PLAN-radar-inmobiliario.md.
+
 IMPORTANTE — leer antes de tocar este archivo: la sección `ATTRIBUTE_IDS` y el
 parseo de ubicación/condición de `extract_listing` son PROVISORIOS. El propio
 PLAN-radar-inmobiliario.md advierte que la API cambió (acceso anónimo

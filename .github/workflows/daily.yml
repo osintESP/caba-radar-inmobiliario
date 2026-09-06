@@ -1,3 +1,8 @@
+# Scrapea la web pública de Mercado Libre (ver ingest/meli_scraper.py) —
+# no requiere ningún secret de ML. Los secrets ML_CLIENT_ID/ML_CLIENT_SECRET/
+# ML_REFRESH_TOKEN/GH_SECRETS_PAT quedan cargados en el repo por si en el
+# futuro se retoma el flujo OAuth (API bloqueada hoy para apps no
+# certificadas), pero este workflow no los usa.
 name: Ingesta diaria
 
 on:
@@ -27,12 +32,6 @@ jobs:
         run: uv sync --frozen
 
       - name: Correr ingesta del día
-        env:
-          ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
-          ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
-          ML_REFRESH_TOKEN: ${{ secrets.ML_REFRESH_TOKEN }}
-          GH_SECRETS_PAT: ${{ secrets.GH_SECRETS_PAT }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
         run: uv run python -m ingest.run_daily
 
       - name: Commit de snapshot y latest.json
