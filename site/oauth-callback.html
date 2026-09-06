@@ -17,9 +17,14 @@
   <p id="msg">Leyendo el resultado de la autorización…</p>
   <textarea id="code-box" rows="2" readonly hidden></textarea>
   <p id="instructions" hidden>
-    Copiá el <code>code</code> de arriba y corré, desde tu terminal:
+    Volvé a la terminal donde corriste <code>meli_auth_bootstrap</code> — te
+    va a estar esperando en el prompt "Pegá acá el 'code'...". Pegá ahí el
+    código de arriba y apretá Enter.
+    <br /><br />
+    Si esa terminal ya no está (la cerraste, o pasaron más de unos minutos y
+    el code expiró), volvé a correr desde cero:
     <br />
-    <code>uv run python -m ingest.meli_auth_bootstrap --code &lt;code-copiado&gt; --redirect-uri "<span id="redirect-uri"></span>"</code>
+    <code>uv run python -m ingest.meli_auth_bootstrap --redirect-uri "<span id="redirect-uri"></span>"</code>
   </p>
 
   <script>
