@@ -5,8 +5,13 @@ parseo de ubicación/condición de `extract_listing` son PROVISORIOS. El propio
 PLAN-radar-inmobiliario.md advierte que la API cambió (acceso anónimo
 restringido, `available_filters` ya no viene en las búsquedas), y no hay forma
 honesta de confirmar de memoria los IDs de atributo/categoría/barrio
-exactos. El spike de `ingest/meli_explore.py` corre esto contra la API real
-con un token válido, vuelca las respuestas a `tests/fixtures/`, y este módulo
+exactos. Además, Mercado Libre separa Inmuebles bajo una unidad de negocio
+propia llamada **VIS** ("Vehículos, Inmuebles y Servicios"), con soporte
+técnico y documentación distintos del resto del marketplace — no está
+confirmado si `/sites/MLA/search` alcanza para leer avisos de venta o si
+hace falta un endpoint bajo `/vis/...`. El spike de `ingest/meli_explore.py`
+corre esto contra la API real con un token de una app registrada con
+"Negocios: VIS", vuelca las respuestas a `tests/fixtures/`, y este módulo
 se ajusta con esos datos reales antes de confiar en `run_daily.py`.
 
 No cambia el contrato hacia afuera: `search_all_items` siempre devuelve una

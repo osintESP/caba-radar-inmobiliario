@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar Inmobiliario — OAuth callback</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; }
+    code, textarea { font-family: ui-monospace, monospace; }
+    textarea { width: 100%; padding: 0.6rem; font-size: 0.95rem; }
+    .error { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <h1>Autorización de Mercado Libre</h1>
+  <p id="msg">Leyendo el resultado de la autorización…</p>
+  <textarea id="code-box" rows="2" readonly hidden></textarea>
+  <p id="instructions" hidden>
+    Copiá el <code>code</code> de arriba y corré, desde tu terminal:
+    <br />
+    <code>uv run python -m ingest.meli_auth_bootstrap --code &lt;code-copiado&gt; --redirect-uri "<span id="redirect-uri"></span>"</code>
+  </p>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+    const msg = document.getElementById("msg");
+    const box = document.getElementById("code-box");
+    const instructions = document.getElementById("instructions");
+    document.getElementById("redirect-uri").textContent = window.location.origin + window.location.pathname;
+
+    if (code) {
+      msg.textContent = "Autorización OK. Este es tu code (de un solo uso, expira en minutos):";
+      box.value = code;
+      box.hidden = false;
+      instructions.hidden = false;
+    } else if (error) {
+      msg.textContent = `Mercado Libre devolvió un error de autorización: ${error}`;
+      msg.className = "error";
+    } else {
+      msg.textContent = "No se encontró ni 'code' ni 'error' en la URL. ¿Llegaste acá por otra vía?";
+      msg.className = "error";
+    }
+  </script>
+</body>
+</html>
