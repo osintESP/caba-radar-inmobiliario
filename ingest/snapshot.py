@@ -1,16 +1,24 @@
 """Orquesta una corrida de ingesta: barrios -> scraping de los 3 portales ->
-normalización -> parquet del día.
+normalización -> dedupe (F3) -> parquet del día. F4 (valuación) se corre
+después, en ingest/run_daily.py, sobre el resultado de esta función.
 
-Sin dedupe todavía (F3) ni valuación (F4). F2 (Zonaprop/Argenprop) recién
-se agrega en esta sesión — activable/desactivable por separado en
+Zonaprop/Argenprop son activables/desactivables por separado en
 `config/barrios.yaml: fuentes`, porque a diferencia de Mercado Libre estos
 dos portales necesitan un navegador real (ver ingest/browser_utils.py) y
-todavía no está confirmado que eso funcione desde un runner de GitHub
-Actions (IP de datacenter) y no solo desde una máquina local — ver
-README.md.
+su fiabilidad en un runner de GitHub Actions (IP de datacenter) es
+variable — ver README.md.
 
 Dos diseños de costo bien distintos conviven acá:
 
+- **Zonaprop/Argenprop**: la página de LISTADO ya trae casi todo (precio,
+  m², ambientes, dirección) — no hace falta visitar el detalle de cada
+  aviso. Se recorren todas las páginas de resultados todos los días, sin
+  cupo ni caché de "conocidos". Corren PRIMERO, antes que ML: Cloudflare
+  comparte reputación de IP entre los sitios que protege, y confirmado en
+  la práctica que si ML ya hizo miles de requests desde la misma IP del
+  runner, el challenge de Zonaprop empieza a fallar mucho más seguido
+  (25 de 27 combinaciones en una corrida real) que corriendo Zonaprop
+  "en frío". Un fallo acá se degrada sin abortar: se sigue solo con ML.
 - **Mercado Libre**: la página de LISTADO es barata (1 request cada 48
   avisos) pero NO trae m²/ambientes — eso exige visitar el DETALLE de cada
   aviso (1 request por aviso). Con barrios de alto volumen, pedir el
@@ -19,10 +27,6 @@ Dos diseños de costo bien distintos conviven acá:
   tipología (`scraping.max_new_detail_fetches_por_corrida`). Los avisos ya
   conocidos heredan sus atributos de detalle (no cambian) de la última vez
   que se los vio.
-- **Zonaprop/Argenprop**: la página de LISTADO ya trae casi todo (precio,
-  m², ambientes, dirección) — no hace falta visitar el detalle de cada
-  aviso. Se recorren todas las páginas de resultados todos los días, sin
-  cupo ni caché de "conocidos".
 """
 
 from __future__ import annotations
@@ -137,6 +141,24 @@ def run_snapshot(
     fuentes = barrios_cfg.get("fuentes", {})
     raw_records: list[dict[str, Any]] = []
 
+    if fuentes.get("zonaprop", True) or fuentes.get("argenprop", True):
+        # Zonaprop/Argenprop van ANTES que ML a propósito: Cloudflare
+        # comparte reputación de IP entre los sitios que protege, y ML por
+        # sí solo ya hace miles de requests desde la misma IP del runner.
+        # Confirmado en la práctica: corriendo Zonaprop después de ~3hs de
+        # ML, 25 de 27 combinaciones fallaron el challenge; en una prueba
+        # corta y aislada (sin ML antes) pasaba sin problema. Un fallo acá
+        # (Cloudflare/WAF, Chromium mal instalado, lo que sea) NO debe
+        # impedir que ML corra igual — se degrada: se sigue solo con ML.
+        try:
+            with browser_session() as browser:
+                if fuentes.get("zonaprop", True):
+                    raw_records.extend(_scrape_browser_portal(zonaprop_scraper, browser, barrios_cfg))
+                if fuentes.get("argenprop", True):
+                    raw_records.extend(_scrape_browser_portal(argenprop_scraper, browser, barrios_cfg))
+        except Exception as exc:  # noqa: BLE001 — degradación intencional, no silenciosa: se imprime igual
+            print(f"AVISO: Zonaprop/Argenprop fallaron, se sigue solo con ML. Error: {exc}")
+
     if fuentes.get("meli", True):
         known = load_known_attributes(snapshots_dir)
         max_new_fetches = barrios_cfg.get("scraping", {}).get("max_new_detail_fetches_por_corrida", 250)
@@ -189,22 +211,6 @@ def run_snapshot(
                 new_fetches += 1
         finally:
             client.close()
-
-    if fuentes.get("zonaprop", True) or fuentes.get("argenprop", True):
-        # Un fallo acá (Cloudflare/WAF, Chromium mal instalado, lo que sea)
-        # NO debe tirar las horas de scraping de ML ya hechas — pasó dos
-        # veces en la práctica (una vez por un push en carrera, otra por
-        # faltar instalar Chromium en este workflow) y las dos veces se
-        # perdió todo porque la excepción abortaba antes de llegar al
-        # commit. Se degrada: se sigue con lo que ML ya trajo.
-        try:
-            with browser_session() as browser:
-                if fuentes.get("zonaprop", True):
-                    raw_records.extend(_scrape_browser_portal(zonaprop_scraper, browser, barrios_cfg))
-                if fuentes.get("argenprop", True):
-                    raw_records.extend(_scrape_browser_portal(argenprop_scraper, browser, barrios_cfg))
-        except Exception as exc:  # noqa: BLE001 — degradación intencional, no silenciosa: se imprime igual
-            print(f"AVISO: Zonaprop/Argenprop fallaron, se sigue solo con ML. Error: {exc}")
 
     for record in raw_records:
         record["raw_json"] = json.dumps(
