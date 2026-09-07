@@ -44,6 +44,22 @@ USER_AGENT = (
 _MIN_DELAY = 2.0
 _MAX_DELAY = 4.0
 
+# Marcadores del interstitial de Cloudflare. Confirmado en una corrida real
+# en GitHub Actions: el challenge pasa la mayoría de las veces (contexto
+# nuevo por página, ver más abajo) pero no siempre — a veces se queda
+# mostrando esto en vez del contenido real. Si esto se toma silenciosamente
+# como "0 avisos", contamina los datos (un barrio entero parece vacío sin
+# estarlo). Por eso `fetch_rendered_html` lo detecta y reintenta.
+_CHALLENGE_MARKERS = ("Just a moment", "cf-mitigated", "challenges.cloudflare.com")
+
+
+def is_challenge_page(html: str) -> bool:
+    return any(marker in html for marker in _CHALLENGE_MARKERS)
+
+
+class ChallengePageError(RuntimeError):
+    """Cloudflare/WAF no soltó el contenido real después de reintentar."""
+
 
 @contextmanager
 def browser_session() -> Iterator[Browser]:
@@ -59,12 +75,7 @@ def browser_session() -> Iterator[Browser]:
             browser.close()
 
 
-def fetch_rendered_html(browser: Browser, url: str, extra_wait_ms: int = 4000) -> str:
-    """Navega a `url` en un contexto nuevo, con el rate limit cortés, y
-    devuelve el HTML ya renderizado (después del challenge de
-    Cloudflare/WAF y de que el JS del cliente termine de pintar la lista
-    de avisos)."""
-    time.sleep(random.uniform(_MIN_DELAY, _MAX_DELAY))
+def _fetch_once(browser: Browser, url: str, extra_wait_ms: int) -> str:
     context = browser.new_context(user_agent=USER_AGENT)
     try:
         page = context.new_page()
@@ -73,3 +84,28 @@ def fetch_rendered_html(browser: Browser, url: str, extra_wait_ms: int = 4000) -
         return page.content()
     finally:
         context.close()
+
+
+def fetch_rendered_html(browser: Browser, url: str, extra_wait_ms: int = 4000, max_attempts: int = 3) -> str:
+    """Navega a `url` en un contexto nuevo, con el rate limit cortés, y
+    devuelve el HTML ya renderizado (después del challenge de
+    Cloudflare/WAF y de que el JS del cliente termine de pintar la lista
+    de avisos).
+
+    Reintenta (contexto nuevo, más espera) si lo que vuelve es el
+    interstitial de Cloudflare en vez del contenido real — confirmado en
+    una corrida real que esto pasa de forma intermitente, y tomarlo
+    silenciosamente como "0 avisos" contamina los datos (ver docstring del
+    módulo). Si se agotan los intentos, levanta `ChallengePageError` en vez
+    de devolver la página de challenge como si fuera contenido válido.
+    """
+    last_html = ""
+    for attempt in range(1, max_attempts + 1):
+        time.sleep(random.uniform(_MIN_DELAY, _MAX_DELAY))
+        last_html = _fetch_once(browser, url, extra_wait_ms * attempt)
+        if not is_challenge_page(last_html):
+            return last_html
+
+    raise ChallengePageError(
+        f"Cloudflare/WAF no soltó el contenido real de {url} después de {max_attempts} intentos."
+    )

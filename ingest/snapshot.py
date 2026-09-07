@@ -106,9 +106,17 @@ def _scrape_browser_portal(
     records: list[dict[str, Any]] = []
     for barrio_nombre, barrio_slug in all_barrios(barrios_cfg):
         for tipo in barrios_cfg["tipologias"]:
-            records.extend(
-                scraper_module.search_barrio_tipo(browser, barrio_nombre, barrio_slug, tipo, max_pages=max_pages)
-            )
+            # Cada combo se aísla: si Cloudflare/WAF no soltó el contenido
+            # real después de reintentar (ChallengePageError, ver
+            # browser_utils.py) o pasa cualquier otro error de red, ese
+            # combo puntual se salta con un aviso — no debe tirar los datos
+            # ya juntados de los demás barrios/tipologías.
+            try:
+                records.extend(
+                    scraper_module.search_barrio_tipo(browser, barrio_nombre, barrio_slug, tipo, max_pages=max_pages)
+                )
+            except Exception as exc:  # noqa: BLE001 — degradación por combo, no silenciosa
+                print(f"AVISO: {scraper_module.__name__} falló para {barrio_nombre}/{tipo}, se lo salta: {exc}")
     return records
 
 
