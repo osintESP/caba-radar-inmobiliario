@@ -13,6 +13,8 @@ def _row(**overrides):
         "tipo": "departamento",
         "condicion": "usado",
         "ambientes": 3,
+        "banos": 1,
+        "cocheras": 0,
         "m2_cubiertos": 72.0,
         "price_usd": 130000.0,
         "usd_m2": 1805.5,

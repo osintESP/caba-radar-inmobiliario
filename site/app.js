@@ -45,10 +45,32 @@ function fillSelect(id, values) {
   }
 }
 
+function numFilterValue(id) {
+  const raw = document.getElementById(id).value;
+  return raw === "" ? null : Number(raw);
+}
+
 function applyFilters(rows) {
   const barrio = document.getElementById("filter-barrio").value;
   const tipo = document.getElementById("filter-tipo").value;
-  return rows.filter((r) => (!barrio || r.barrio === barrio) && (!tipo || r.tipo === tipo));
+  const ambientesMin = numFilterValue("filter-ambientes-min");
+  const ambientesMax = numFilterValue("filter-ambientes-max");
+  const banosMin = numFilterValue("filter-banos-min");
+  const precioMin = numFilterValue("filter-precio-min");
+  const precioMax = numFilterValue("filter-precio-max");
+  const soloConCochera = document.getElementById("filter-cochera").checked;
+
+  return rows.filter((r) => {
+    if (barrio && r.barrio !== barrio) return false;
+    if (tipo && r.tipo !== tipo) return false;
+    if (ambientesMin !== null && !(r.ambientes >= ambientesMin)) return false;
+    if (ambientesMax !== null && !(r.ambientes <= ambientesMax)) return false;
+    if (banosMin !== null && !(r.banos >= banosMin)) return false;
+    if (precioMin !== null && !(r.price_usd >= precioMin)) return false;
+    if (precioMax !== null && !(r.price_usd <= precioMax)) return false;
+    if (soloConCochera && !(r.cocheras > 0)) return false;
+    return true;
+  });
 }
 
 function sortRows(rows) {
@@ -70,7 +92,7 @@ function render() {
   tbody.innerHTML = "";
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="13">Ningún aviso coincide con el filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15">Ningún aviso coincide con el filtro.</td></tr>';
     return;
   }
 
@@ -81,6 +103,8 @@ function render() {
       <td>${r.tipo ?? "s/d"}</td>
       <td>${r.condicion ?? "s/d"}</td>
       <td>${r.ambientes ?? "s/d"}</td>
+      <td>${r.banos ?? "s/d"}</td>
+      <td>${r.cocheras ?? "s/d"}</td>
       <td>${fmtNum(r.m2_cubiertos)}</td>
       <td>${fmtNum(r.price_usd)}</td>
       <td>${fmtNum(r.usd_m2)}</td>
@@ -110,8 +134,10 @@ function setupSortableHeaders() {
 }
 
 function setupFilters() {
-  document.getElementById("filter-barrio").addEventListener("change", render);
-  document.getElementById("filter-tipo").addEventListener("change", render);
+  const changeIds = ["filter-barrio", "filter-tipo", "filter-cochera"];
+  const inputIds = ["filter-ambientes-min", "filter-ambientes-max", "filter-banos-min", "filter-precio-min", "filter-precio-max"];
+  changeIds.forEach((id) => document.getElementById(id).addEventListener("change", render));
+  inputIds.forEach((id) => document.getElementById(id).addEventListener("input", render));
 }
 
 setupSortableHeaders();

@@ -23,6 +23,30 @@
       Tipo
       <select id="filter-tipo"><option value="">Todos</option></select>
     </label>
+    <label>
+      Ambientes mín.
+      <input type="number" id="filter-ambientes-min" min="0" step="1" placeholder="—" />
+    </label>
+    <label>
+      Ambientes máx.
+      <input type="number" id="filter-ambientes-max" min="0" step="1" placeholder="—" />
+    </label>
+    <label>
+      Baños mín.
+      <input type="number" id="filter-banos-min" min="0" step="1" placeholder="—" />
+    </label>
+    <label>
+      Precio USD mín.
+      <input type="number" id="filter-precio-min" min="0" step="1000" placeholder="—" />
+    </label>
+    <label>
+      Precio USD máx.
+      <input type="number" id="filter-precio-max" min="0" step="1000" placeholder="—" />
+    </label>
+    <label class="filters__checkbox">
+      <input type="checkbox" id="filter-cochera" />
+      Con cochera
+    </label>
   </section>
 
   <table id="listings-table">
@@ -32,6 +56,8 @@
         <th data-key="tipo" data-type="string">Tipo</th>
         <th data-key="condicion" data-type="string">Condición</th>
         <th data-key="ambientes" data-type="number">Amb.</th>
+        <th data-key="banos" data-type="number">Baños</th>
+        <th data-key="cocheras" data-type="number">Cochera</th>
         <th data-key="m2_cubiertos" data-type="number">m² cub.</th>
         <th data-key="price_usd" data-type="number">Precio USD</th>
         <th data-key="usd_m2" data-type="number">USD/m²</th>
@@ -44,7 +70,7 @@
       </tr>
     </thead>
     <tbody id="listings-body">
-      <tr><td colspan="13">Sin datos todavía.</td></tr>
+      <tr><td colspan="15">Sin datos todavía.</td></tr>
     </tbody>
   </table>
 

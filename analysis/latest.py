@@ -20,6 +20,8 @@ DISPLAY_COLUMNS = [
     "tipo",
     "condicion",
     "ambientes",
+    "banos",
+    "cocheras",
     "m2_cubiertos",
     "price_usd",
     "usd_m2",
