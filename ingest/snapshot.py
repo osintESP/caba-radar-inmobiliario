@@ -183,11 +183,20 @@ def run_snapshot(
             client.close()
 
     if fuentes.get("zonaprop", True) or fuentes.get("argenprop", True):
-        with browser_session() as browser:
-            if fuentes.get("zonaprop", True):
-                raw_records.extend(_scrape_browser_portal(zonaprop_scraper, browser, barrios_cfg))
-            if fuentes.get("argenprop", True):
-                raw_records.extend(_scrape_browser_portal(argenprop_scraper, browser, barrios_cfg))
+        # Un fallo acá (Cloudflare/WAF, Chromium mal instalado, lo que sea)
+        # NO debe tirar las horas de scraping de ML ya hechas — pasó dos
+        # veces en la práctica (una vez por un push en carrera, otra por
+        # faltar instalar Chromium en este workflow) y las dos veces se
+        # perdió todo porque la excepción abortaba antes de llegar al
+        # commit. Se degrada: se sigue con lo que ML ya trajo.
+        try:
+            with browser_session() as browser:
+                if fuentes.get("zonaprop", True):
+                    raw_records.extend(_scrape_browser_portal(zonaprop_scraper, browser, barrios_cfg))
+                if fuentes.get("argenprop", True):
+                    raw_records.extend(_scrape_browser_portal(argenprop_scraper, browser, barrios_cfg))
+        except Exception as exc:  # noqa: BLE001 — degradación intencional, no silenciosa: se imprime igual
+            print(f"AVISO: Zonaprop/Argenprop fallaron, se sigue solo con ML. Error: {exc}")
 
     for record in raw_records:
         record["raw_json"] = json.dumps(
