@@ -1,0 +1,29 @@
+# Prueba manual y acotada: ¿Zonaprop/Argenprop responden con contenido
+# real desde un runner de GitHub Actions (IP de datacenter)? Ver
+# ingest/browser_utils.py y README.md. NO forma parte de la corrida
+# diaria — se dispara a mano para decidir si conviene prender
+# `fuentes.zonaprop`/`fuentes.argenprop` en config/barrios.yaml.
+name: Test F2 (Zonaprop/Argenprop) en Actions
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Instalar dependencias
+        run: uv sync --frozen
+
+      - name: Instalar Chromium de Playwright
+        run: uv run playwright install --with-deps chromium
+
+      - name: Probar Zonaprop y Argenprop
+        run: uv run python scripts/test_f2_browsers.py

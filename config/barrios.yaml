@@ -3,6 +3,12 @@
 # meli_slug: slug de URL de inmuebles.mercadolibre.com.ar, confirmado en vivo
 # (todos devolvieron 200 con avisos reales al momento de escribir esto).
 # Si Mercado Libre cambia sus URLs, ajustar acá — nunca en el código.
+#
+# Se reusa el mismo valor como slug para Zonaprop/Argenprop (ambos usan el
+# mismo formato simple de nombre de barrio en minúsculas). Confirmado en
+# vivo SOLO para Monte Castro al escribir esto — si algún otro barrio no
+# resuelve bien en esos dos portales, es acá donde ajustar (agregar un
+# campo `zonaprop_slug`/`argenprop_slug` si hiciera falta divergir).
 
 nucleo:            # barrios de alerta activa
   - nombre: "Velez Sarsfield"
@@ -48,3 +54,14 @@ scraping:
   # corrida a 2-4s por request) cubre el backlog inicial en unos 3 días,
   # a un ritmo que sigue siendo cortés (~20 requests/min).
   max_new_detail_fetches_por_corrida: 3000
+
+fuentes:
+  # Zonaprop/Argenprop necesitan un navegador real (Cloudflare/AWS WAF, ver
+  # ingest/browser_utils.py) y todavía NO está confirmado que eso funcione
+  # desde un runner de GitHub Actions (IP de datacenter) — solo se probó
+  # desde una máquina local. Arrancan en `false` a propósito: la corrida
+  # diaria en Actions no los toca hasta confirmar viabilidad con una
+  # corrida de prueba acotada (ver README, "Verificar F2 en Actions").
+  meli: true
+  zonaprop: false
+  argenprop: false

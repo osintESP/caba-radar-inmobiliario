@@ -6,9 +6,8 @@ una propiedad y candidatas de compra. Ver `PLAN-radar-inmobiliario.md` para
 el diseño completo del proyecto (incluye un addendum al final documentando
 el cambio descripto abajo).
 
-**Esta implementación cubre F0 (ingesta + snapshots automáticos) y F1 (sitio
-estático)**. Todavía no hace dedupe, valuación, brecha neta, ni scrapers de
-Zonaprop/Argenprop — eso es F2+.
+**Esta implementación cubre F0+F1 (Mercado Libre + sitio estático) y F2
+(Zonaprop/Argenprop)**. Todavía no hace dedupe (F3) ni valuación (F4).
 
 ## Nota importante: la ingesta es por scraping, no por la API de ML
 
@@ -43,6 +42,38 @@ Dos niveles de costo muy distintos:
   la corrida anterior (no cambian); los que no llegaron a enriquecerse hoy
   quedan con esos campos en blanco y se reintentan mañana. Con el volumen
   actual, completar el backlog inicial de barrios grandes toma varios días.
+
+## F2: Zonaprop/Argenprop, y por qué no están prendidos por defecto
+
+Ninguno de los dos portales responde con contenido real a un cliente HTTP
+simple: Zonaprop lo bloquea Cloudflare, Argenprop necesita renderizar JS
+(AWS WAF) para pintar los avisos. Ambos **sí** responden a un navegador real
+headless (Playwright) — ver `ingest/browser_utils.py`, `zonaprop_scraper.py`,
+`argenprop_scraper.py`. A diferencia de Mercado Libre, la página de listado
+de estos dos portales ya trae precio/m²/ambientes/dirección: no hace falta
+visitar el detalle de cada aviso.
+
+**Hallazgo del spike, importante para no romperlo:** reusar la misma
+pestaña de Playwright para navegar una segunda página hace que Cloudflare
+vuelva a desafiar — y esa vez no se resuelve solo, ni esperando más. La
+solución (ya aplicada) es abrir un **contexto nuevo de Playwright por
+página** (no un browser nuevo, alcanza con eso y es rápido).
+
+Todo esto se probó y confirmó **desde una máquina local** (IP residencial).
+Lo que falta confirmar es si Cloudflare/AWS WAF puntúan distinto una IP de
+datacenter (GitHub Actions) — por eso `fuentes.zonaprop`/`fuentes.argenprop`
+arrancan en `false` en `config/barrios.yaml`, y hay un workflow separado
+para probarlo sin arriesgar la corrida diaria:
+
+```bash
+gh workflow run test-f2-browsers.yml
+```
+
+Si ese workflow (`.github/workflows/test-f2-browsers.yml`) sale verde,
+poner `fuentes.zonaprop: true` y `fuentes.argenprop: true` en
+`config/barrios.yaml` para sumarlos a la corrida diaria de verdad. Si sale
+rojo, la alternativa (ya prevista en el plan original) es correr estos dos
+scrapers localmente en vez de en Actions, y pushear el resultado desde ahí.
 
 ## Desarrollo local
 
