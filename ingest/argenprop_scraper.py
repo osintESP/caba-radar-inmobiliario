@@ -45,6 +45,7 @@ _ATTR_RE = re.compile(r'([a-zA-Z_][a-zA-Z0-9_-]*)="([^"]*)"')
 _PRICE_RE = re.compile(r'card__price">\s*(?:<span[^>]*>([^<]*)</span>)?\s*([^<]*)<')
 _ADDRESS_RE = re.compile(r'card__address"[^>]*>\s*([^<]*)<')
 _TITLE_RE = re.compile(r'card__title">([^<]*)<')
+_IMAGE_RE = re.compile(r'src="(https://www\.argenprop\.com/static-content/[^"]+)"')
 _FEATURES_BLOCK_RE = re.compile(r'card__main-features">(.*?)</ul>', re.S)
 _FEATURE_ITEM_RE = re.compile(r'<i class="([^"]*)"></i>\s*<span>\s*([^<]*)</span>')
 _TOTAL_RE = re.compile(r"<title>\s*(\d+)\s")
@@ -157,6 +158,7 @@ def parse_search_results(html: str, tipo: str, barrio_hint: str) -> list[dict[st
         piso = int(piso_match.group(1)) if piso_match else None
 
         title_match = _TITLE_RE.search(chunk)
+        image_match = _IMAGE_RE.search(chunk)
         features_block = _FEATURES_BLOCK_RE.search(chunk)
         features = _parse_features(features_block.group(1)) if features_block else _parse_features("")
 
@@ -180,6 +182,7 @@ def parse_search_results(html: str, tipo: str, barrio_hint: str) -> list[dict[st
                 "expensas_ars": None,  # TODO: no confirmado en la tarjeta de listado
                 "direccion": direccion,
                 "titulo": title_match.group(1).strip() if title_match else None,
+                "imagen_url": image_match.group(1) if image_match else None,
                 "tipo": tipo,
                 "barrio": barrio_hint,
                 "ambientes": ambientes,

@@ -178,6 +178,7 @@ def parse_search_results(html: str, tipo: str, barrio_hint: str) -> list[dict[st
                     "titulo": entry.get("name"),
                     "seller": (entry.get("seller") or {}).get("name"),
                     "date_posted": entry.get("datePosted"),
+                    "imagen_url": entry.get("image"),
                     "tipo": tipo,
                     "barrio": barrio_hint,
                 }

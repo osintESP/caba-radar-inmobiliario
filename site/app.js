@@ -29,8 +29,10 @@ async function loadData() {
 }
 
 function populateFilters(rows) {
+  const portales = [...new Set(rows.map((r) => r.portal).filter(Boolean))].sort();
   const barrios = [...new Set(rows.map((r) => r.barrio).filter(Boolean))].sort();
   const tipos = [...new Set(rows.map((r) => r.tipo).filter(Boolean))].sort();
+  fillSelect("filter-portal", portales);
   fillSelect("filter-barrio", barrios);
   fillSelect("filter-tipo", tipos);
 }
@@ -51,6 +53,7 @@ function numFilterValue(id) {
 }
 
 function applyFilters(rows) {
+  const portal = document.getElementById("filter-portal").value;
   const barrio = document.getElementById("filter-barrio").value;
   const tipo = document.getElementById("filter-tipo").value;
   const condicion = document.getElementById("filter-condicion").value;
@@ -62,6 +65,7 @@ function applyFilters(rows) {
   const soloConCochera = document.getElementById("filter-cochera").checked;
 
   return rows.filter((r) => {
+    if (portal && r.portal !== portal) return false;
     if (barrio && r.barrio !== barrio) return false;
     if (tipo && r.tipo !== tipo) return false;
     if (condicion && r.condicion !== condicion) return false;
@@ -94,13 +98,15 @@ function render() {
   tbody.innerHTML = "";
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="15">Ningún aviso coincide con el filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17">Ningún aviso coincide con el filtro.</td></tr>';
     return;
   }
 
   for (const r of rows) {
     const tr = document.createElement("tr");
+    const dup = r.n_duplicados ?? 1;
     tr.innerHTML = `
+      <td>${r.portal ?? "s/d"}</td>
       <td>${r.barrio ?? "s/d"}</td>
       <td>${r.tipo ?? "s/d"}</td>
       <td>${r.condicion ?? "s/d"}</td>
@@ -114,6 +120,7 @@ function render() {
       <td>${r.antiguedad ?? "s/d"}</td>
       <td>${r.piso ?? "s/d"}</td>
       <td>${fmtBool(r.ascensor)}</td>
+      <td>${dup > 1 ? `×${dup}` : "—"}</td>
       <td>${fmtDate(r.captured_at)}</td>
       <td><a href="${r.url}" target="_blank" rel="noopener">Ver</a></td>
     `;
@@ -136,7 +143,7 @@ function setupSortableHeaders() {
 }
 
 function setupFilters() {
-  const changeIds = ["filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera"];
+  const changeIds = ["filter-portal", "filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera"];
   const inputIds = ["filter-ambientes-min", "filter-ambientes-max", "filter-banos-min", "filter-precio-min", "filter-precio-max"];
   changeIds.forEach((id) => document.getElementById(id).addEventListener("change", render));
   inputIds.forEach((id) => document.getElementById(id).addEventListener("input", render));

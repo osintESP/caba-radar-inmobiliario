@@ -65,3 +65,26 @@ def test_no_missing_fields_still_serializes_correctly():
     dumped = json.dumps(latest)
     reparsed = json.loads(dumped)
     assert reparsed["avisos"][0]["ambientes"] == 3
+
+
+def test_duplicate_group_shows_only_cheapest_with_count():
+    """F3: dos avisos con el mismo property_fingerprint (mismo grupo de
+    dedupe) se muestran como uno solo, el de menor precio, con
+    n_duplicados=2 — el resto sigue existiendo en el DataFrame, solo no
+    se repite en la vista."""
+    df = pd.DataFrame(
+        [
+            _row(portal_id="MLA1", price_usd=135000.0, property_fingerprint="grp_MLA1"),
+            _row(portal_id="ZP1", price_usd=130000.0, property_fingerprint="grp_MLA1"),
+            _row(portal_id="AP9", price_usd=99000.0, property_fingerprint="AP9"),  # sin duplicados
+        ]
+    )
+    latest = build_latest_json(df)
+    assert latest["n_avisos"] == 2  # el grupo de 2 cuenta como 1 en la vista
+    assert latest["n_avisos_total"] == 3  # pero las 3 filas siguen en el DataFrame
+
+    avisos_por_precio = {a["price_usd"]: a for a in latest["avisos"]}
+    assert 130000.0 in avisos_por_precio  # el más barato del grupo, no el de 135000
+    assert 135000.0 not in avisos_por_precio
+    assert avisos_por_precio[130000.0]["n_duplicados"] == 2
+    assert avisos_por_precio[99000.0]["n_duplicados"] == 1

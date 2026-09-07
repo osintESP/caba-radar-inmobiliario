@@ -46,6 +46,10 @@ _LOCATION_RE = re.compile(r'POSTING_CARD_LOCATION">([^<]*)<')
 _URL_RE = re.compile(r'<a href="([^"]+)"')
 _PORTAL_ID_RE = re.compile(r"-(\d+)\.html")
 _TOTAL_RE = re.compile(r'"offerCount":\s*"?(\d+)"?')
+# Ojo: la primera <img> de la tarjeta suele ser el LOGO de la inmobiliaria
+# ("empresas/..."), no una foto del aviso — las fotos reales están bajo
+# "avisos/" y la primera trae "?isFirstImage=true".
+_IMAGE_RE = re.compile(r'(https://imgar\.zonapropcdn\.com/avisos/[^"]+\?isFirstImage=true)')
 
 _NUMERIC_RE = re.compile(r"[\d.,]+")
 
@@ -109,6 +113,7 @@ def parse_search_results(html: str, tipo: str, barrio_hint: str) -> list[dict[st
 
         address_match = _ADDRESS_RE.search(chunk)
         location_match = _LOCATION_RE.search(chunk)
+        image_match = _IMAGE_RE.search(chunk)
 
         features = _parse_features(_FEATURE_RE.findall(chunk))
 
@@ -123,6 +128,7 @@ def parse_search_results(html: str, tipo: str, barrio_hint: str) -> list[dict[st
                 "expensas_ars": expensas_ars,
                 "direccion": address_match.group(1).strip() if address_match else None,
                 "titulo": location_match.group(1).strip() if location_match else None,
+                "imagen_url": image_match.group(1) if image_match else None,
                 "tipo": tipo,
                 "barrio": barrio_hint,
                 "condicion": None,  # TODO: no confirmado en la tarjeta de listado

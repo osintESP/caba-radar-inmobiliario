@@ -35,7 +35,7 @@ from typing import Any, Optional
 import pandas as pd
 import yaml
 
-from ingest import argenprop_scraper, meli_scraper, zonaprop_scraper
+from ingest import argenprop_scraper, dedupe, meli_scraper, zonaprop_scraper
 from ingest.browser_utils import browser_session
 from ingest.fx_mep import get_mep_rate
 from ingest.normalize import normalize_batch
@@ -203,6 +203,18 @@ def run_snapshot(
         usd_m2_max=outliers_cfg.get("usd_m2_max", 8000),
         captured_at=captured_at,
     )
+
+    # F3: dedupe cross-portal/cross-inmobiliaria (ver ingest/dedupe.py). El
+    # pHash de fotos es lo único que pega a la red acá, así que también
+    # tiene un tope diario, reusando el hash ya calculado en corridas
+    # anteriores para no volver a descargar la misma imagen.
+    max_new_phash = barrios_cfg.get("scraping", {}).get("max_new_phash_fetches_por_corrida", 500)
+    known_phashes = dedupe.load_known_phashes(snapshots_dir)
+    dedupe_result = dedupe.find_duplicates(rows, known_phashes, max_new_phash_fetches=max_new_phash)
+    for row in rows:
+        pid = row["portal_id"]
+        row["property_fingerprint"] = dedupe_result.fingerprint_by_portal_id.get(pid, pid)
+        row["imagen_phash"] = dedupe_result.phash_by_portal_id.get(pid)
 
     df = pd.DataFrame(rows)
 

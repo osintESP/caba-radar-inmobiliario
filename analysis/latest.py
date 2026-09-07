@@ -3,8 +3,12 @@
 Sale directo del snapshot del día, no de SQLite: F1 (mostrar la tabla) no
 depende de que la reconstrucción de analysis/db.py ande perfecta.
 
-Filas outlier o sin precio se excluyen de la vista del sitio pero no se
-borran de nada — siguen en el parquet completo.
+Filas outlier, sin precio, o duplicadas de otra ya mostrada (mismo
+`property_fingerprint`, ver ingest/dedupe.py — F3) se excluyen de la vista
+del sitio pero no se borran de nada, siguen en el parquet completo. De
+cada grupo de duplicados se muestra solo la de menor precio
+(PLAN-radar-inmobiliario.md, sección 9: "al unificar, conservar el precio
+más bajo"), con `n_duplicados` indicando cuántos avisos representa.
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from typing import Any
 import pandas as pd
 
 DISPLAY_COLUMNS = [
+    "portal",
     "barrio",
     "tipo",
     "condicion",
@@ -31,6 +36,7 @@ DISPLAY_COLUMNS = [
     "ascensor",
     "url",
     "captured_at",
+    "n_duplicados",
 ]
 
 
@@ -41,6 +47,16 @@ def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
     visible = df
     if not df.empty:
         visible = df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()]
+
+    if not visible.empty and "property_fingerprint" in visible.columns:
+        visible = visible.assign(
+            n_duplicados=visible.groupby("property_fingerprint")["portal_id"].transform("count")
+        )
+        # Un aviso por grupo de duplicados: el de menor precio. El resto
+        # del grupo sigue en el parquet, no se borra nada.
+        visible = visible.sort_values("price_usd").drop_duplicates(subset="property_fingerprint", keep="first")
+    elif not visible.empty:
+        visible = visible.assign(n_duplicados=1)
 
     records = []
     if not visible.empty:

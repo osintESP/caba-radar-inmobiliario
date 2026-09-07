@@ -16,6 +16,10 @@
 
   <section class="filters">
     <label>
+      Portal
+      <select id="filter-portal"><option value="">Todos</option></select>
+    </label>
+    <label>
       Barrio
       <select id="filter-barrio"><option value="">Todos</option></select>
     </label>
@@ -60,6 +64,7 @@
   <table id="listings-table">
     <thead>
       <tr>
+        <th data-key="portal" data-type="string">Portal</th>
         <th data-key="barrio" data-type="string">Barrio</th>
         <th data-key="tipo" data-type="string">Tipo</th>
         <th data-key="condicion" data-type="string">Condición</th>
@@ -73,12 +78,13 @@
         <th data-key="antiguedad" data-type="number">Antig.</th>
         <th data-key="piso" data-type="number">Piso</th>
         <th data-key="ascensor" data-type="string">Ascensor</th>
+        <th data-key="n_duplicados" data-type="number" title="Cuántos avisos de otras inmobiliarias/portales se agruparon acá">Dup.</th>
         <th data-key="captured_at" data-type="string">Capturado</th>
         <th>Aviso</th>
       </tr>
     </thead>
     <tbody id="listings-body">
-      <tr><td colspan="15">Sin datos todavía.</td></tr>
+      <tr><td colspan="17">Sin datos todavía.</td></tr>
     </tbody>
   </table>
 

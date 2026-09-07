@@ -55,6 +55,12 @@ scraping:
   # a un ritmo que sigue siendo cortés (~20 requests/min).
   max_new_detail_fetches_por_corrida: 3000
 
+  # F3 (dedupe, ingest/dedupe.py): pHash de fotos, la única parte que pega
+  # a la red. Se calcula solo para avisos nuevos (se reusa el hash ya
+  # calculado antes), con este tope diario por la misma razón que el de
+  # arriba: no descargar miles de fotos de golpe.
+  max_new_phash_fetches_por_corrida: 500
+
 fuentes:
   # Verificado con .github/workflows/test-f2-browsers.yml (corrida real en
   # Actions, no local): Zonaprop SÍ pasa el challenge de Cloudflare desde
