@@ -10,6 +10,7 @@ borran de nada — siguen en el parquet completo.
 from __future__ import annotations
 
 import datetime as dt
+import math
 from typing import Any
 
 import pandas as pd
@@ -39,7 +40,18 @@ def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
     if not df.empty:
         visible = df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()]
 
-    records = visible[DISPLAY_COLUMNS].where(pd.notnull(visible[DISPLAY_COLUMNS]), None).to_dict(orient="records") if not visible.empty else []
+    records = []
+    if not visible.empty:
+        for record in visible[DISPLAY_COLUMNS].to_dict(orient="records"):
+            # pandas castea None de vuelta a NaN en columnas float (no puede
+            # guardar None en un float64) — json.dumps() serializaría eso
+            # como el literal `NaN`, que es JSON inválido y rompe
+            # JSON.parse() en el navegador. Se reemplaza acá, después de
+            # pasar por dict, donde ya no hay dtype de columna que fuerce
+            # el cast de vuelta.
+            records.append(
+                {k: (None if isinstance(v, float) and math.isnan(v) else v) for k, v in record.items()}
+            )
 
     return {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
