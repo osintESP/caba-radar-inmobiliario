@@ -53,6 +53,7 @@ function numFilterValue(id) {
 function applyFilters(rows) {
   const barrio = document.getElementById("filter-barrio").value;
   const tipo = document.getElementById("filter-tipo").value;
+  const condicion = document.getElementById("filter-condicion").value;
   const ambientesMin = numFilterValue("filter-ambientes-min");
   const ambientesMax = numFilterValue("filter-ambientes-max");
   const banosMin = numFilterValue("filter-banos-min");
@@ -63,6 +64,7 @@ function applyFilters(rows) {
   return rows.filter((r) => {
     if (barrio && r.barrio !== barrio) return false;
     if (tipo && r.tipo !== tipo) return false;
+    if (condicion && r.condicion !== condicion) return false;
     if (ambientesMin !== null && !(r.ambientes >= ambientesMin)) return false;
     if (ambientesMax !== null && !(r.ambientes <= ambientesMax)) return false;
     if (banosMin !== null && !(r.banos >= banosMin)) return false;
@@ -134,7 +136,7 @@ function setupSortableHeaders() {
 }
 
 function setupFilters() {
-  const changeIds = ["filter-barrio", "filter-tipo", "filter-cochera"];
+  const changeIds = ["filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera"];
   const inputIds = ["filter-ambientes-min", "filter-ambientes-max", "filter-banos-min", "filter-precio-min", "filter-precio-max"];
   changeIds.forEach((id) => document.getElementById(id).addEventListener("change", render));
   inputIds.forEach((id) => document.getElementById(id).addEventListener("input", render));
