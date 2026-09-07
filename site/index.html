@@ -7,91 +7,97 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>Radar Inmobiliario</h1>
-    <p class="subtitle">Vélez Sarsfield · Floresta · Monte Castro · anillo oeste — avisos de Mercado Libre</p>
-  </header>
+  <div class="page">
+    <header class="hero">
+      <h1>Radar Inmobiliario</h1>
+      <p class="subtitle">Vélez Sarsfield · Floresta · Monte Castro · anillo oeste — Mercado Libre y Zonaprop</p>
+    </header>
 
-  <section id="status-banner" class="banner">Cargando…</section>
+    <section id="status-banner" class="banner">Cargando…</section>
 
-  <section id="mi-propiedad" class="mi-propiedad" hidden>
-    <h2>Mi propiedad</h2>
-    <div id="mi-propiedad-body"></div>
-  </section>
+    <section id="mi-propiedad" class="card mi-propiedad" hidden>
+      <h2>Mi propiedad</h2>
+      <div id="mi-propiedad-body"></div>
+    </section>
 
-  <section class="filters">
-    <label>
-      Portal
-      <select id="filter-portal"><option value="">Todos</option></select>
-    </label>
-    <label>
-      Barrio
-      <select id="filter-barrio"><option value="">Todos</option></select>
-    </label>
-    <label>
-      Tipo
-      <select id="filter-tipo"><option value="">Todos</option></select>
-    </label>
-    <label>
-      Condición
-      <select id="filter-condicion">
-        <option value="">Todas</option>
-        <option value="usado">Usado</option>
-        <option value="pozo">A estrenar / pozo</option>
-      </select>
-    </label>
-    <label>
-      Ambientes mín.
-      <input type="number" id="filter-ambientes-min" min="0" step="1" placeholder="—" />
-    </label>
-    <label>
-      Ambientes máx.
-      <input type="number" id="filter-ambientes-max" min="0" step="1" placeholder="—" />
-    </label>
-    <label>
-      Baños mín.
-      <input type="number" id="filter-banos-min" min="0" step="1" placeholder="—" />
-    </label>
-    <label>
-      Precio USD mín.
-      <input type="number" id="filter-precio-min" min="0" step="1000" placeholder="—" />
-    </label>
-    <label>
-      Precio USD máx.
-      <input type="number" id="filter-precio-max" min="0" step="1000" placeholder="—" />
-    </label>
-    <label class="filters__checkbox">
-      <input type="checkbox" id="filter-cochera" />
-      Con cochera
-    </label>
-  </section>
+    <section class="card filters">
+      <label>
+        Portal
+        <select id="filter-portal"><option value="">Todos</option></select>
+      </label>
+      <label>
+        Barrio
+        <select id="filter-barrio"><option value="">Todos</option></select>
+      </label>
+      <label>
+        Tipo
+        <select id="filter-tipo"><option value="">Todos</option></select>
+      </label>
+      <label>
+        Condición
+        <select id="filter-condicion">
+          <option value="">Todas</option>
+          <option value="usado">Usado</option>
+          <option value="pozo">A estrenar / pozo</option>
+        </select>
+      </label>
+      <label>
+        Ambientes mín.
+        <input type="number" id="filter-ambientes-min" min="0" step="1" placeholder="—" />
+      </label>
+      <label>
+        Ambientes máx.
+        <input type="number" id="filter-ambientes-max" min="0" step="1" placeholder="—" />
+      </label>
+      <label>
+        Baños mín.
+        <input type="number" id="filter-banos-min" min="0" step="1" placeholder="—" />
+      </label>
+      <label>
+        Precio USD mín.
+        <input type="number" id="filter-precio-min" min="0" step="1000" placeholder="—" />
+      </label>
+      <label>
+        Precio USD máx.
+        <input type="number" id="filter-precio-max" min="0" step="1000" placeholder="—" />
+      </label>
+      <label class="filters__checkbox">
+        <input type="checkbox" id="filter-cochera" />
+        Con cochera
+      </label>
+    </section>
 
-  <table id="listings-table">
-    <thead>
-      <tr>
-        <th data-key="portal" data-type="string">Portal</th>
-        <th data-key="barrio" data-type="string">Barrio</th>
-        <th data-key="tipo" data-type="string">Tipo</th>
-        <th data-key="condicion" data-type="string">Condición</th>
-        <th data-key="ambientes" data-type="number">Amb.</th>
-        <th data-key="banos" data-type="number">Baños</th>
-        <th data-key="cocheras" data-type="number">Cochera</th>
-        <th data-key="m2_cubiertos" data-type="number">m² cub.</th>
-        <th data-key="price_usd" data-type="number">Precio USD</th>
-        <th data-key="usd_m2" data-type="number">USD/m²</th>
-        <th data-key="expensas_ars" data-type="number">Expensas ARS</th>
-        <th data-key="antiguedad" data-type="number">Antig.</th>
-        <th data-key="piso" data-type="number">Piso</th>
-        <th data-key="ascensor" data-type="string">Ascensor</th>
-        <th data-key="n_duplicados" data-type="number" title="Cuántos avisos de otras inmobiliarias/portales se agruparon acá">Dup.</th>
-        <th data-key="captured_at" data-type="string">Capturado</th>
-        <th>Aviso</th>
-      </tr>
-    </thead>
-    <tbody id="listings-body">
-      <tr><td colspan="17">Sin datos todavía.</td></tr>
-    </tbody>
-  </table>
+    <section class="card table-card">
+      <div class="table-scroll">
+        <table id="listings-table">
+          <thead>
+            <tr>
+              <th data-key="portal" data-type="string">Portal</th>
+              <th data-key="barrio" data-type="string">Barrio</th>
+              <th data-key="tipo" data-type="string">Tipo</th>
+              <th data-key="condicion" data-type="string">Condición</th>
+              <th data-key="ambientes" data-type="number">Amb.</th>
+              <th data-key="banos" data-type="number">Baños</th>
+              <th data-key="cocheras" data-type="number">Cochera</th>
+              <th data-key="m2_cubiertos" data-type="number">m² cub.</th>
+              <th data-key="price_usd" data-type="number">Precio USD</th>
+              <th data-key="usd_m2" data-type="number">USD/m²</th>
+              <th data-key="expensas_ars" data-type="number">Expensas ARS</th>
+              <th data-key="antiguedad" data-type="number">Antig.</th>
+              <th data-key="piso" data-type="number">Piso</th>
+              <th data-key="ascensor" data-type="string">Ascensor</th>
+              <th data-key="n_duplicados" data-type="number" title="Cuántos avisos de otras inmobiliarias/portales se agruparon acá">Dup.</th>
+              <th data-key="captured_at" data-type="string">Capturado</th>
+              <th>Aviso</th>
+            </tr>
+          </thead>
+          <tbody id="listings-body">
+            <tr><td colspan="17">Sin datos todavía.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
 
   <script src="app.js"></script>
 </body>

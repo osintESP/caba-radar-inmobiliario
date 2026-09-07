@@ -38,27 +38,35 @@ function renderMiPropiedad(mp) {
   }
   section.hidden = false;
 
-  const encabezado =
-    `${mp.barrio} · ${mp.tipo} · ${mp.ambientes} amb. · ${mp.m2_cubiertos} m² cub. · ` +
-    `USD ${fmtNum(mp.precio_venta_max_usd)} (${fmtNum(mp.usd_m2_declarado)} USD/m²)`;
+  const lugar = `${mp.barrio} · ${mp.tipo} · ${mp.ambientes} amb. · ${mp.m2_cubiertos} m² cub.`;
 
-  let veredicto;
+  const stats = [
+    { value: `USD ${fmtNum(mp.precio_venta_max_usd)}`, label: "Precio" },
+    { value: fmtNum(mp.usd_m2_declarado), label: "USD/m² declarado" },
+  ];
+
+  let detalle;
   if (mp.veredicto === "insuficiente") {
-    veredicto =
+    detalle =
       `<p class="mi-propiedad__insuficiente">Todavía no hay suficientes comparables para auditar este valor ` +
       `(${mp.n_comparables} de 30 necesarios, contando barrio + adyacentes). ` +
       `Se completa solo a medida que se acumulan más datos.</p>`;
   } else {
-    const posicion =
-      mp.percentil_sujeto === null
-        ? ""
-        : ` — está en el percentil ${Math.round(mp.percentil_sujeto)} de esos comparables`;
-    veredicto =
-      `<p>Comparado contra <strong>${mp.n_comparables}</strong> avisos reales (${mp.scope === "barrio" ? "mismo barrio" : "barrio + adyacentes"}): ` +
-      `mediana <strong>${fmtNum(mp.usd_m2_mediana)} USD/m²</strong> (rango ${fmtNum(mp.usd_m2_p25)}–${fmtNum(mp.usd_m2_p75)})${posicion}.</p>`;
+    stats.push(
+      { value: fmtNum(mp.usd_m2_mediana), label: "Mediana de la zona" },
+      { value: mp.percentil_sujeto === null ? "—" : `Percentil ${Math.round(mp.percentil_sujeto)}`, label: "Tu posición" },
+    );
+    detalle =
+      `<p class="mp-detail">Comparado contra <strong>${mp.n_comparables}</strong> avisos reales ` +
+      `(${mp.scope === "barrio" ? "mismo barrio" : "barrio + adyacentes"}): rango ` +
+      `${fmtNum(mp.usd_m2_p25)}–${fmtNum(mp.usd_m2_p75)} USD/m².</p>`;
   }
 
-  body.innerHTML = `<p>${encabezado}</p>${veredicto}`;
+  const statsHtml = stats
+    .map((s) => `<div class="mp-stat"><span class="mp-stat__value">${s.value}</span><span class="mp-stat__label">${s.label}</span></div>`)
+    .join("");
+
+  body.innerHTML = `<span class="mp-place">${lugar}</span><div class="mp-stats">${statsHtml}</div>${detalle}`;
 }
 
 function populateFilters(rows) {
