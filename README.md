@@ -59,21 +59,24 @@ vuelva a desafiar — y esa vez no se resuelve solo, ni esperando más. La
 solución (ya aplicada) es abrir un **contexto nuevo de Playwright por
 página** (no un browser nuevo, alcanza con eso y es rápido).
 
-Todo esto se probó y confirmó **desde una máquina local** (IP residencial).
-Lo que falta confirmar es si Cloudflare/AWS WAF puntúan distinto una IP de
-datacenter (GitHub Actions) — por eso `fuentes.zonaprop`/`fuentes.argenprop`
-arrancan en `false` en `config/barrios.yaml`, y hay un workflow separado
-para probarlo sin arriesgar la corrida diaria:
+**Verificado con una corrida real en Actions** (`.github/workflows/test-f2-browsers.yml`,
+IP de datacenter, no local) — resultado dividido:
+
+- **Zonaprop: funciona.** Pasa el challenge de Cloudflare igual desde
+  Actions (25/25 avisos reales). `fuentes.zonaprop: true` en
+  `config/barrios.yaml`, ya integrado a la corrida diaria.
+- **Argenprop: NO funciona desde Actions** (0 avisos, aunque local anda
+  perfecto) — su WAF sí distingue la IP de datacenter. `fuentes.argenprop`
+  queda en `false` hasta investigar más o, como ya preveía el plan
+  original, correrlo localmente en vez de en Actions y pushear el
+  resultado desde ahí.
+
+Para repetir la prueba (por ejemplo si se ajusta algo del scraper de
+Argenprop):
 
 ```bash
 gh workflow run test-f2-browsers.yml
 ```
-
-Si ese workflow (`.github/workflows/test-f2-browsers.yml`) sale verde,
-poner `fuentes.zonaprop: true` y `fuentes.argenprop: true` en
-`config/barrios.yaml` para sumarlos a la corrida diaria de verdad. Si sale
-rojo, la alternativa (ya prevista en el plan original) es correr estos dos
-scrapers localmente en vez de en Actions, y pushear el resultado desde ahí.
 
 ## Desarrollo local
 

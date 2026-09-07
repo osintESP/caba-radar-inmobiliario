@@ -56,12 +56,12 @@ scraping:
   max_new_detail_fetches_por_corrida: 3000
 
 fuentes:
-  # Zonaprop/Argenprop necesitan un navegador real (Cloudflare/AWS WAF, ver
-  # ingest/browser_utils.py) y todavía NO está confirmado que eso funcione
-  # desde un runner de GitHub Actions (IP de datacenter) — solo se probó
-  # desde una máquina local. Arrancan en `false` a propósito: la corrida
-  # diaria en Actions no los toca hasta confirmar viabilidad con una
-  # corrida de prueba acotada (ver README, "Verificar F2 en Actions").
+  # Verificado con .github/workflows/test-f2-browsers.yml (corrida real en
+  # Actions, no local): Zonaprop SÍ pasa el challenge de Cloudflare desde
+  # una IP de datacenter (25/25 avisos reales). Argenprop NO — su WAF
+  # devolvió 0 avisos desde Actions aunque local funciona perfecto. Hasta
+  # investigar más (o resolverlo corriendo Argenprop localmente, como ya
+  # preveía el plan), argenprop queda apagado en la corrida diaria.
   meli: true
-  zonaprop: false
+  zonaprop: true
   argenprop: false
