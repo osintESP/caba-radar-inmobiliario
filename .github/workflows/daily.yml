@@ -1,8 +1,15 @@
 # Scrapea la web pública de Mercado Libre (ver ingest/meli_scraper.py) —
-# no requiere ningún secret de ML. Los secrets ML_CLIENT_ID/ML_CLIENT_SECRET/
-# ML_REFRESH_TOKEN/GH_SECRETS_PAT quedan cargados en el repo por si en el
-# futuro se retoma el flujo OAuth (API bloqueada hoy para apps no
-# certificadas), pero este workflow no los usa.
+# no requiere ningún secret de ML. ML_CLIENT_ID/ML_CLIENT_SECRET/
+# ML_REFRESH_TOKEN quedan cargados en el repo por si en el futuro se
+# retoma el flujo OAuth (API bloqueada hoy para apps no certificadas),
+# pero este workflow no los usa.
+#
+# El deploy de Pages va DENTRO de este mismo job, después del commit: un
+# push hecho con el GITHUB_TOKEN automático no dispara otros workflows
+# (anti-loop de GitHub), así que un pages.yml separado nunca se hubiera
+# disparado solo con la corrida diaria (confirmado en la práctica: el
+# primer día el sitio quedó desactualizado). pages.yml se deja para cuando
+# alguien pushea cambios de código del sitio a mano — ahí sí dispara.
 name: Ingesta diaria
 
 on:
@@ -12,6 +19,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: daily-ingest
@@ -20,6 +29,9 @@ concurrency:
 jobs:
   ingest:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,3 +53,17 @@ jobs:
           git add data/snapshots/ data/latest.json
           git diff --cached --quiet && echo "Sin cambios, no se commitea." || git commit -m "snapshot $(date -u +%F)"
           git push
+
+      - name: Copiar latest.json al sitio
+        run: |
+          mkdir -p site/data
+          cp data/latest.json site/data/latest.json
+
+      - name: Preparar artifact de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
