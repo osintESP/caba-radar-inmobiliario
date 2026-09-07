@@ -43,6 +43,9 @@ jobs:
       - name: Instalar dependencias
         run: uv sync --frozen
 
+      - name: Instalar Chromium de Playwright
+        run: uv run playwright install --with-deps chromium
+
       - name: Correr ingesta del día
         run: uv run python -m ingest.run_daily
 
