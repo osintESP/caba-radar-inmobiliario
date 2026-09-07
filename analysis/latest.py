@@ -40,6 +40,23 @@ DISPLAY_COLUMNS = [
 ]
 
 
+def deduplicated_view(df: pd.DataFrame) -> pd.DataFrame:
+    """Un aviso por grupo de duplicados (`property_fingerprint`, ver
+    ingest/dedupe.py): el de menor precio, con `n_duplicados` indicando
+    cuántos avisos representa. El resto del grupo no se borra de `df`,
+    esto es solo una vista derivada — la usan tanto el sitio
+    (`build_latest_json`) como el motor de valuación (F4), para no dejar
+    que la misma unidad publicada por varias inmobiliarias pese varias
+    veces en una mediana."""
+    if df.empty:
+        return df
+    if "property_fingerprint" not in df.columns:
+        return df.assign(n_duplicados=1)
+
+    view = df.assign(n_duplicados=df.groupby("property_fingerprint")["portal_id"].transform("count"))
+    return view.sort_values("price_usd").drop_duplicates(subset="property_fingerprint", keep="first")
+
+
 def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
     fx_rate = float(df["fx_rate_used"].iloc[0]) if not df.empty and "fx_rate_used" in df else None
     fx_source = str(df["fx_source"].iloc[0]) if not df.empty and "fx_source" in df else None
@@ -48,15 +65,7 @@ def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
     if not df.empty:
         visible = df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()]
 
-    if not visible.empty and "property_fingerprint" in visible.columns:
-        visible = visible.assign(
-            n_duplicados=visible.groupby("property_fingerprint")["portal_id"].transform("count")
-        )
-        # Un aviso por grupo de duplicados: el de menor precio. El resto
-        # del grupo sigue en el parquet, no se borra nada.
-        visible = visible.sort_values("price_usd").drop_duplicates(subset="property_fingerprint", keep="first")
-    elif not visible.empty:
-        visible = visible.assign(n_duplicados=1)
+    visible = deduplicated_view(visible)
 
     records = []
     if not visible.empty:

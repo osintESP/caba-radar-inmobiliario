@@ -16,6 +16,8 @@ viejos o corruptos sin avisar (PLAN-radar-inmobiliario.md, sección 13):
 3. Reconstruye el SQLite efímero desde todos los parquets (valida que el
    schema completo sigue aplicando limpio).
 4. Arma data/latest.json a partir del snapshot del día.
+5. Audita "mi propiedad" contra comparables reales (F4, sección 10) con
+   EXACTAMENTE el mismo motor que cualquier candidata — sin rama especial.
 """
 
 from __future__ import annotations
@@ -25,12 +27,46 @@ import sys
 from pathlib import Path
 
 from analysis.db import rebuild_from_snapshots
-from analysis.latest import build_latest_json
+from analysis.latest import build_latest_json, deduplicated_view
+from analysis.valuation import audit_property
 from ingest.normalize import check_parse_rate
-from ingest.snapshot import run_snapshot
+from ingest.snapshot import CONFIG_DIR, load_yaml, run_snapshot
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 LATEST_JSON_PATH = DATA_DIR / "latest.json"
+
+
+def _audit_mi_propiedad(df) -> dict:
+    mi_propiedad = load_yaml(CONFIG_DIR / "mi_propiedad.yaml")["mi_propiedad"]
+    adyacentes = load_yaml(CONFIG_DIR / "barrios.yaml").get("adyacentes", {})
+
+    comparables_pool = deduplicated_view(df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()])
+    usd_m2_declarado = mi_propiedad["precio_venta_max_usd"] / mi_propiedad["m2_cubiertos"]
+
+    auditoria = audit_property(
+        comparables_pool,
+        barrio=mi_propiedad["barrio"],
+        tipo=mi_propiedad["tipo"],
+        ambientes=mi_propiedad["ambientes"],
+        m2_cubiertos=mi_propiedad["m2_cubiertos"],
+        adyacentes=adyacentes,
+        usd_m2_sujeto=usd_m2_declarado,
+    )
+    return {
+        "barrio": mi_propiedad["barrio"],
+        "tipo": mi_propiedad["tipo"],
+        "ambientes": mi_propiedad["ambientes"],
+        "m2_cubiertos": mi_propiedad["m2_cubiertos"],
+        "precio_venta_max_usd": mi_propiedad["precio_venta_max_usd"],
+        "usd_m2_declarado": usd_m2_declarado,
+        "n_comparables": auditoria.n_comparables,
+        "scope": auditoria.scope,
+        "usd_m2_mediana": auditoria.usd_m2_mediana,
+        "usd_m2_p25": auditoria.usd_m2_p25,
+        "usd_m2_p75": auditoria.usd_m2_p75,
+        "percentil_sujeto": auditoria.percentil_sujeto,
+        "veredicto": auditoria.veredicto,
+    }
 
 
 def main() -> int:
@@ -44,6 +80,7 @@ def main() -> int:
     rebuild_from_snapshots()  # valida que el schema completo sigue aplicando limpio
 
     latest = build_latest_json(df)
+    latest["mi_propiedad"] = _audit_mi_propiedad(df)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     LATEST_JSON_PATH.write_text(json.dumps(latest, ensure_ascii=False, indent=2), encoding="utf-8")
 

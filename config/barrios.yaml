@@ -39,6 +39,23 @@ tipologias:         # separadas siempre, nunca mezcladas en un comparable
   - "ph"
   - "casa"
 
+# F4 (analysis/valuation.py): a qué barrios se expande la búsqueda de
+# comparables cuando el barrio solo no llega a 30 avisos. Geografía general
+# de CABA curada a mano, NO medida (sin geohash/lat-lon todavía) — es una
+# aproximación razonable, no un dato verificado. Antes de confiar en un
+# veredicto que dependió de esta expansión, vale la pena confirmarlo con
+# alguien que conozca la zona (ver PLAN-radar-inmobiliario.md sección 14).
+adyacentes:
+  "Monte Castro": ["Velez Sarsfield", "Floresta", "Villa Real", "Versalles"]
+  "Velez Sarsfield": ["Monte Castro", "Floresta", "Versalles", "Villa Luro"]
+  "Floresta": ["Monte Castro", "Velez Sarsfield", "Flores", "Villa Luro"]
+  "Flores": ["Floresta", "Villa Luro", "Villa Santa Rita"]
+  "Villa Luro": ["Floresta", "Velez Sarsfield", "Villa Real", "Flores"]
+  "Villa Santa Rita": ["Flores", "Villa del Parque"]
+  "Villa Real": ["Monte Castro", "Villa Luro", "Versalles"]
+  "Versalles": ["Monte Castro", "Velez Sarsfield", "Villa Real", "Villa del Parque"]
+  "Villa del Parque": ["Versalles", "Villa Santa Rita"]
+
 outliers:
   usd_m2_min: 400
   usd_m2_max: 8000

@@ -46,6 +46,28 @@ header h1 {
   color: var(--muted);
 }
 
+.mi-propiedad {
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+
+.mi-propiedad h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.mi-propiedad p {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+}
+
+.mi-propiedad__insuficiente {
+  color: var(--muted);
+  font-style: italic;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

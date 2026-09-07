@@ -22,10 +22,43 @@ async function loadData() {
       `Dólar MEP: ${data.fx_rate ? data.fx_rate.toLocaleString("es-AR") : "s/d"} (${data.fx_source || "s/d"}) · ` +
       `${data.n_avisos} avisos mostrados de ${data.n_avisos_total} obtenidos`;
     populateFilters(currentData);
+    renderMiPropiedad(data.mi_propiedad);
     render();
   } catch (err) {
     banner.textContent = `Error cargando ${DATA_URL}: ${err.message}. ¿Corrió ya el workflow diario al menos una vez?`;
   }
+}
+
+function renderMiPropiedad(mp) {
+  const section = document.getElementById("mi-propiedad");
+  const body = document.getElementById("mi-propiedad-body");
+  if (!mp) {
+    section.hidden = true;
+    return;
+  }
+  section.hidden = false;
+
+  const encabezado =
+    `${mp.barrio} · ${mp.tipo} · ${mp.ambientes} amb. · ${mp.m2_cubiertos} m² cub. · ` +
+    `USD ${fmtNum(mp.precio_venta_max_usd)} (${fmtNum(mp.usd_m2_declarado)} USD/m²)`;
+
+  let veredicto;
+  if (mp.veredicto === "insuficiente") {
+    veredicto =
+      `<p class="mi-propiedad__insuficiente">Todavía no hay suficientes comparables para auditar este valor ` +
+      `(${mp.n_comparables} de 30 necesarios, contando barrio + adyacentes). ` +
+      `Se completa solo a medida que se acumulan más datos.</p>`;
+  } else {
+    const posicion =
+      mp.percentil_sujeto === null
+        ? ""
+        : ` — está en el percentil ${Math.round(mp.percentil_sujeto)} de esos comparables`;
+    veredicto =
+      `<p>Comparado contra <strong>${mp.n_comparables}</strong> avisos reales (${mp.scope === "barrio" ? "mismo barrio" : "barrio + adyacentes"}): ` +
+      `mediana <strong>${fmtNum(mp.usd_m2_mediana)} USD/m²</strong> (rango ${fmtNum(mp.usd_m2_p25)}–${fmtNum(mp.usd_m2_p75)})${posicion}.</p>`;
+  }
+
+  body.innerHTML = `<p>${encabezado}</p>${veredicto}`;
 }
 
 function populateFilters(rows) {
