@@ -65,12 +65,11 @@ scraping:
   # completa todos los días. La página de DETALLE de cada aviso (cara: 1
   # request por aviso) solo se pide para avisos nuevos, hasta este tope por
   # corrida, repartido parejo entre las ~27 combinaciones barrio x tipología
-  # (ver ingest/snapshot.py). Con el backlog inicial real (~7.200 avisos) un
-  # tope de 250 tardaría casi un mes en cubrir todo una sola vez — muy lento
-  # para un proyecto que necesita comparables pronto. 3000/día (~2-2.5hs de
-  # corrida a 2-4s por request) cubre el backlog inicial en unos 3 días,
-  # a un ritmo que sigue siendo cortés (~20 requests/min).
-  max_new_detail_fetches_por_corrida: 3000
+  # (ver ingest/snapshot.py). Con el backlog inicial real (~7.200 avisos),
+  # 1000/día tarda ~50 min por corrida y cubre el backlog en ~7 días —
+  # decisión explícita del usuario: prioriza corridas cortas sobre terminar
+  # el backlog rápido (bajado de 3000, que tardaba ~2.5hs por corrida).
+  max_new_detail_fetches_por_corrida: 1000
 
   # F3 (dedupe, ingest/dedupe.py): pHash de fotos, la única parte que pega
   # a la red. Se calcula solo para avisos nuevos (se reusa el hash ya
