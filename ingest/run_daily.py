@@ -18,10 +18,13 @@ viejos o corruptos sin avisar (PLAN-radar-inmobiliario.md, sección 13):
 4. Arma data/latest.json a partir del snapshot del día.
 5. Audita "mi propiedad" contra comparables reales (F4, sección 10) con
    EXACTAMENTE el mismo motor que cualquier candidata — sin rama especial.
+6. Detecta avisos que desaparecieron desde el snapshot anterior (base de
+   F6, ingest/price_events.py) y los acumula en data/price_events.parquet.
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import sys
 from pathlib import Path
@@ -30,10 +33,12 @@ from analysis.db import rebuild_from_snapshots
 from analysis.latest import build_latest_json, deduplicated_view
 from analysis.valuation import audit_property
 from ingest.normalize import check_parse_rate
-from ingest.snapshot import CONFIG_DIR, load_yaml, run_snapshot
+from ingest.price_events import append_events, detect_delistings
+from ingest.snapshot import CONFIG_DIR, SNAPSHOTS_DIR, load_yaml, run_snapshot
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 LATEST_JSON_PATH = DATA_DIR / "latest.json"
+PRICE_EVENTS_PATH = DATA_DIR / "price_events.parquet"
 
 
 def _audit_mi_propiedad(df) -> dict:
@@ -70,7 +75,10 @@ def _audit_mi_propiedad(df) -> dict:
 
 
 def main() -> int:
-    df = run_snapshot()
+    captured_at = dt.datetime.now(dt.timezone.utc).isoformat()
+    fecha = captured_at[:10]
+
+    df = run_snapshot(captured_at=captured_at)
 
     if df.empty:
         raise RuntimeError("La corrida de hoy no trajo ningún aviso — abortando antes de sobreescribir latest.json.")
@@ -79,12 +87,21 @@ def main() -> int:
 
     rebuild_from_snapshots()  # valida que el schema completo sigue aplicando limpio
 
+    current_snapshot_path = SNAPSHOTS_DIR / f"{fecha}.parquet"
+    new_delistings = detect_delistings(df, SNAPSHOTS_DIR, current_snapshot_path, event_at=fecha)
+    all_events = append_events(new_delistings, PRICE_EVENTS_PATH)
+
     latest = build_latest_json(df)
     latest["mi_propiedad"] = _audit_mi_propiedad(df)
+    latest["n_desaparecidos_hoy"] = int(len(new_delistings))
+    latest["n_eventos_acumulados"] = int(len(all_events))
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     LATEST_JSON_PATH.write_text(json.dumps(latest, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"OK: {latest['n_avisos']} avisos publicados de {latest['n_avisos_total']} obtenidos.")
+    print(
+        f"OK: {latest['n_avisos']} avisos publicados de {latest['n_avisos_total']} obtenidos. "
+        f"{len(new_delistings)} avisos desaparecieron desde el snapshot anterior."
+    )
     return 0
 
 

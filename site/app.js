@@ -18,10 +18,14 @@ async function loadData() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     currentData = data.avisos || [];
+    const desaparecidos =
+      data.n_desaparecidos_hoy !== undefined
+        ? ` · ${data.n_desaparecidos_hoy} avisos desaparecieron hoy (posible reserva/venta)`
+        : "";
     banner.textContent =
       `Generado: ${fmtDate(data.generated_at)} · ` +
       `Dólar MEP: ${data.fx_rate ? data.fx_rate.toLocaleString("es-AR") : "s/d"} (${data.fx_source || "s/d"}) · ` +
-      `${data.n_avisos} avisos mostrados de ${data.n_avisos_total} obtenidos`;
+      `${data.n_avisos} avisos mostrados de ${data.n_avisos_total} obtenidos${desaparecidos}`;
     populateFilters(currentData);
     renderMiPropiedad(data.mi_propiedad);
     render();
