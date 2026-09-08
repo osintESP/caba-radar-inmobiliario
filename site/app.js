@@ -9,6 +9,7 @@ const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString("es-AR") : "s/d");
 
 let currentData = [];
 let sortState = { key: "usd_m2", dir: "asc" };
+let updateTableFade = () => {};
 
 async function loadData() {
   const banner = document.getElementById("status-banner");
@@ -147,26 +148,40 @@ function render() {
     const tr = document.createElement("tr");
     const dup = r.n_duplicados ?? 1;
     tr.innerHTML = `
-      <td>${r.portal ?? "s/d"}</td>
       <td>${r.barrio ?? "s/d"}</td>
       <td>${r.tipo ?? "s/d"}</td>
-      <td>${r.condicion ?? "s/d"}</td>
-      <td>${r.ambientes ?? "s/d"}</td>
-      <td>${r.banos ?? "s/d"}</td>
-      <td>${r.cocheras ?? "s/d"}</td>
-      <td>${fmtNum(r.m2_cubiertos)}</td>
       <td>${fmtNum(r.price_usd)}</td>
       <td>${fmtNum(r.usd_m2)}</td>
+      <td>${fmtNum(r.m2_cubiertos)}</td>
+      <td>${r.ambientes ?? "s/d"}</td>
+      <td>${r.condicion ?? "s/d"}</td>
+      <td>${r.banos ?? "s/d"}</td>
+      <td>${r.cocheras ?? "s/d"}</td>
       <td>${fmtNum(r.expensas_ars)}</td>
       <td>${r.antiguedad ?? "s/d"}</td>
       <td>${r.piso ?? "s/d"}</td>
       <td>${fmtBool(r.ascensor)}</td>
+      <td>${r.portal ?? "s/d"}</td>
       <td>${dup > 1 ? `×${dup}` : "—"}</td>
       <td>${fmtDate(r.captured_at)}</td>
       <td><a href="${r.url}" target="_blank" rel="noopener">Ver</a></td>
     `;
     tbody.appendChild(tr);
   }
+  updateTableFade();
+}
+
+function setupTableFade() {
+  const scroll = document.querySelector(".table-scroll");
+  const fade = document.getElementById("table-fade");
+  const update = () => {
+    const atEnd = scroll.scrollLeft + scroll.clientWidth >= scroll.scrollWidth - 2;
+    fade.classList.toggle("table-card__fade--hidden", atEnd || scroll.scrollWidth <= scroll.clientWidth);
+  };
+  scroll.addEventListener("scroll", update);
+  window.addEventListener("resize", update);
+  update();
+  return update;
 }
 
 function setupSortableHeaders() {
@@ -192,4 +207,5 @@ function setupFilters() {
 
 setupSortableHeaders();
 setupFilters();
+updateTableFade = setupTableFade();
 loadData();

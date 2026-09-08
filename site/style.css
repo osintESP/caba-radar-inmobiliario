@@ -193,12 +193,29 @@ body {
 /* ---- Tabla ---- */
 
 .table-card {
+  position: relative;
   padding: 0;
   overflow: hidden;
 }
 
 .table-scroll {
   overflow-x: auto;
+}
+
+.table-card__fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--card));
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.table-card__fade--hidden {
+  opacity: 0;
 }
 
 table {
