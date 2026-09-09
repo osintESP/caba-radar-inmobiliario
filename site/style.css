@@ -253,8 +253,28 @@ tbody tr:hover {
   background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
+tbody tr.is-new {
+  background: color-mix(in srgb, var(--good) 9%, transparent);
+}
+
+tbody tr.is-new:hover {
+  background: color-mix(in srgb, var(--good) 16%, transparent);
+}
+
 tbody tr:last-child td {
   border-bottom: none;
+}
+
+.badge-new {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--good) 18%, transparent);
+  color: var(--good);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 a {

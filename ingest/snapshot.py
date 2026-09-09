@@ -96,6 +96,18 @@ def load_known_attributes(snapshots_dir: Path) -> dict[str, dict[str, Any]]:
     return known
 
 
+def load_known_portal_ids(snapshots_dir: Path) -> set[str]:
+    """Todos los portal_id vistos alguna vez en un snapshot anterior — para
+    marcar como "nuevo" cualquier aviso de hoy que no esté acá."""
+    ids: set[str] = set()
+    for path in snapshots_dir.glob("*.parquet"):
+        try:
+            ids.update(pd.read_parquet(path, columns=["portal_id"])["portal_id"].tolist())
+        except Exception:
+            continue
+    return ids
+
+
 def _scrape_browser_portal(
     scraper_module: Any,
     browser: Any,
@@ -234,10 +246,12 @@ def run_snapshot(
     max_new_phash = barrios_cfg.get("scraping", {}).get("max_new_phash_fetches_por_corrida", 500)
     known_phashes = dedupe.load_known_phashes(snapshots_dir)
     dedupe_result = dedupe.find_duplicates(rows, known_phashes, max_new_phash_fetches=max_new_phash)
+    known_portal_ids = load_known_portal_ids(snapshots_dir)
     for row in rows:
         pid = row["portal_id"]
         row["property_fingerprint"] = dedupe_result.fingerprint_by_portal_id.get(pid, pid)
         row["imagen_phash"] = dedupe_result.phash_by_portal_id.get(pid)
+        row["es_nuevo"] = pid not in known_portal_ids
 
     df = pd.DataFrame(rows)
 

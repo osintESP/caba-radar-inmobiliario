@@ -37,6 +37,7 @@ DISPLAY_COLUMNS = [
     "url",
     "captured_at",
     "n_duplicados",
+    "es_nuevo",
 ]
 
 

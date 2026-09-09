@@ -1,6 +1,25 @@
 import types
 
-from ingest.snapshot import _scrape_browser_portal
+import pandas as pd
+
+from ingest.snapshot import _scrape_browser_portal, load_known_portal_ids
+
+
+def test_load_known_portal_ids_reads_all_prior_snapshots(tmp_path):
+    pd.DataFrame([{"portal_id": "A", "otro": 1}, {"portal_id": "B", "otro": 2}]).to_parquet(
+        tmp_path / "2026-01-01.parquet", index=False
+    )
+    pd.DataFrame([{"portal_id": "B", "otro": 3}, {"portal_id": "C", "otro": 4}]).to_parquet(
+        tmp_path / "2026-01-02.parquet", index=False
+    )
+
+    known = load_known_portal_ids(tmp_path)
+
+    assert known == {"A", "B", "C"}
+
+
+def test_load_known_portal_ids_empty_dir_returns_empty_set(tmp_path):
+    assert load_known_portal_ids(tmp_path) == set()
 
 
 def test_scrape_browser_portal_skips_failing_combo_but_keeps_others():

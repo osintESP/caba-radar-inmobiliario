@@ -109,6 +109,7 @@ function applyFilters(rows) {
   const precioMin = numFilterValue("filter-precio-min");
   const precioMax = numFilterValue("filter-precio-max");
   const soloConCochera = document.getElementById("filter-cochera").checked;
+  const soloNuevos = document.getElementById("filter-nuevo").checked;
 
   return rows.filter((r) => {
     if (portal && r.portal !== portal) return false;
@@ -121,6 +122,7 @@ function applyFilters(rows) {
     if (precioMin !== null && !(r.price_usd >= precioMin)) return false;
     if (precioMax !== null && !(r.price_usd <= precioMax)) return false;
     if (soloConCochera && !(r.cocheras > 0)) return false;
+    if (soloNuevos && !r.es_nuevo) return false;
     return true;
   });
 }
@@ -144,14 +146,16 @@ function render() {
   tbody.innerHTML = "";
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="17">Ningún aviso coincide con el filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="18">Ningún aviso coincide con el filtro.</td></tr>';
     return;
   }
 
   for (const r of rows) {
     const tr = document.createElement("tr");
     const dup = r.n_duplicados ?? 1;
+    if (r.es_nuevo) tr.classList.add("is-new");
     tr.innerHTML = `
+      <td>${r.es_nuevo ? '<span class="badge-new">Nuevo</span>' : "—"}</td>
       <td>${r.barrio ?? "s/d"}</td>
       <td>${r.tipo ?? "s/d"}</td>
       <td>${fmtNum(r.price_usd)}</td>
@@ -203,7 +207,7 @@ function setupSortableHeaders() {
 }
 
 function setupFilters() {
-  const changeIds = ["filter-portal", "filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera"];
+  const changeIds = ["filter-portal", "filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera", "filter-nuevo"];
   const inputIds = ["filter-ambientes-min", "filter-ambientes-max", "filter-banos-min", "filter-precio-min", "filter-precio-max"];
   changeIds.forEach((id) => document.getElementById(id).addEventListener("change", render));
   inputIds.forEach((id) => document.getElementById(id).addEventListener("input", render));

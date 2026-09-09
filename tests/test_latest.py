@@ -27,6 +27,7 @@ def _row(**overrides):
         "fx_rate_used": 1500.0,
         "fx_source": "dolarapi:bolsa",
         "es_outlier": False,
+        "es_nuevo": False,
     }
     base.update(overrides)
     return base

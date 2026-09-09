@@ -65,6 +65,10 @@
         <input type="checkbox" id="filter-cochera" />
         Con cochera
       </label>
+      <label class="filters__checkbox">
+        <input type="checkbox" id="filter-nuevo" />
+        Solo nuevos
+      </label>
     </section>
 
     <section class="card table-card">
@@ -72,6 +76,7 @@
         <table id="listings-table">
           <thead>
             <tr>
+              <th data-key="es_nuevo" data-type="string" title="Aviso que no estaba en ningún snapshot anterior">Nuevo</th>
               <th data-key="barrio" data-type="string">Barrio</th>
               <th data-key="tipo" data-type="string">Tipo</th>
               <th data-key="price_usd" data-type="number">Precio USD</th>
@@ -92,7 +97,7 @@
             </tr>
           </thead>
           <tbody id="listings-body">
-            <tr><td colspan="17">Sin datos todavía.</td></tr>
+            <tr><td colspan="18">Sin datos todavía.</td></tr>
           </tbody>
         </table>
       </div>
