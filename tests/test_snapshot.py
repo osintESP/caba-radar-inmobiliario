@@ -2,7 +2,58 @@ import types
 
 import pandas as pd
 
-from ingest.snapshot import _enrich_descriptions, _scrape_browser_portal, load_known_descriptions, load_known_portal_ids
+from ingest.snapshot import (
+    _enrich_descriptions,
+    _scrape_browser_portal,
+    all_barrios,
+    apply_alcance_filter,
+    load_known_descriptions,
+    load_known_portal_ids,
+)
+
+
+def test_all_barrios_includes_anillo_by_default():
+    barrios_cfg = {
+        "nucleo": [{"nombre": "Velez Sarsfield", "meli_slug": "velez-sarsfield"}],
+        "propia": [{"nombre": "Monte Castro", "meli_slug": "monte-castro"}],
+        "anillo": [{"nombre": "Flores", "meli_slug": "flores"}],
+    }
+    assert all_barrios(barrios_cfg) == [
+        ("Velez Sarsfield", "velez-sarsfield"),
+        ("Monte Castro", "monte-castro"),
+        ("Flores", "flores"),
+    ]
+
+
+def test_all_barrios_excludes_anillo_when_alcance_lo_desactiva():
+    """Alcance reducido a pedido del usuario (config/barrios.yaml:
+    alcance.anillo_activo: false) — solo núcleo + propia."""
+    barrios_cfg = {
+        "nucleo": [{"nombre": "Velez Sarsfield", "meli_slug": "velez-sarsfield"}],
+        "propia": [{"nombre": "Monte Castro", "meli_slug": "monte-castro"}],
+        "anillo": [{"nombre": "Flores", "meli_slug": "flores"}],
+        "alcance": {"anillo_activo": False},
+    }
+    assert all_barrios(barrios_cfg) == [
+        ("Velez Sarsfield", "velez-sarsfield"),
+        ("Monte Castro", "monte-castro"),
+    ]
+
+
+def test_apply_alcance_filter_none_is_noop():
+    rows = [{"ambientes": 1}, {"ambientes": None}]
+    assert apply_alcance_filter(rows, None) == rows
+
+
+def test_apply_alcance_filter_descarta_pocos_ambientes_y_sin_dato():
+    rows = [
+        {"portal_id": "A", "ambientes": 3},
+        {"portal_id": "B", "ambientes": 2},
+        {"portal_id": "C", "ambientes": None},
+        {"portal_id": "D", "ambientes": 4},
+    ]
+    resultado = apply_alcance_filter(rows, ambientes_min=3)
+    assert {r["portal_id"] for r in resultado} == {"A", "D"}
 
 
 def test_load_known_portal_ids_reads_all_prior_snapshots(tmp_path):

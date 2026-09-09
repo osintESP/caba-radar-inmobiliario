@@ -8,6 +8,10 @@ dos portales necesitan un navegador real (ver ingest/browser_utils.py) y
 su fiabilidad en un runner de GitHub Actions (IP de datacenter) es
 variable — ver README.md.
 
+El universo de barrios/ambientes es recortable desde `config/barrios.yaml:
+alcance` (decisión del usuario, para iterar más fácil con menos datos por
+corrida) — ver `all_barrios()` y el filtro de `ambientes_min` más abajo.
+
 Dos diseños de costo bien distintos conviven acá:
 
 - **Zonaprop/Argenprop**: la página de LISTADO ya trae casi todo (precio,
@@ -68,9 +72,13 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 
 def all_barrios(barrios_cfg: dict[str, Any]) -> list[tuple[str, str]]:
-    """Devuelve [(nombre, meli_slug), ...] para nucleo + propia + anillo."""
+    """Devuelve [(nombre, meli_slug), ...] para nucleo + propia (+ anillo,
+    salvo que `alcance.anillo_activo` lo desactive — ver config/barrios.yaml,
+    alcance reducido a pedido del usuario para iterar más fácil)."""
+    incluir_anillo = barrios_cfg.get("alcance", {}).get("anillo_activo", True)
+    roles = ("nucleo", "propia", "anillo") if incluir_anillo else ("nucleo", "propia")
     out: list[tuple[str, str]] = []
-    for rol in ("nucleo", "propia", "anillo"):
+    for rol in roles:
         for entry in barrios_cfg.get(rol, []):
             out.append((entry["nombre"], entry["meli_slug"]))
     return out
@@ -113,6 +121,18 @@ def load_known_descriptions(snapshots_dir: Path) -> dict[str, dict[str, Any]]:
                 continue
             known[row["portal_id"]] = {"descripcion": row.get("descripcion"), "tags": row.get("tags")}
     return known
+
+
+def apply_alcance_filter(rows: list[dict[str, Any]], ambientes_min: Optional[int]) -> list[dict[str, Any]]:
+    """Alcance reducido (config/barrios.yaml: alcance.ambientes_min) — a
+    diferencia de outliers (se flaggean, no se descartan, ver
+    ingest/normalize.py), esto SÍ descarta filas: es una decisión explícita
+    de encoger el universo para iterar más fácil, no una señal de calidad
+    del dato. Un aviso sin ambientes informado no puede confirmarse >= al
+    mínimo, así que también se descarta. `ambientes_min=None` es no-op."""
+    if ambientes_min is None:
+        return rows
+    return [r for r in rows if r.get("ambientes") is not None and r["ambientes"] >= ambientes_min]
 
 
 def load_known_portal_ids(snapshots_dir: Path) -> set[str]:
@@ -295,6 +315,12 @@ def run_snapshot(
         usd_m2_max=outliers_cfg.get("usd_m2_max", 8000),
         captured_at=captured_at,
     )
+
+    ambientes_min = barrios_cfg.get("alcance", {}).get("ambientes_min")
+    antes = len(rows)
+    rows = apply_alcance_filter(rows, ambientes_min)
+    if ambientes_min is not None:
+        print(f"Alcance: descartados {antes - len(rows)} avisos con menos de {ambientes_min} ambientes o sin dato.")
 
     # F3: dedupe cross-portal/cross-inmobiliaria (ver ingest/dedupe.py). El
     # pHash de fotos es lo único que pega a la red acá, así que también

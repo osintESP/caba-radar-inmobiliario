@@ -39,6 +39,16 @@ tipologias:         # separadas siempre, nunca mezcladas en un comparable
   - "ph"
   - "casa"
 
+# Alcance reducido a pedido del usuario (2026-09-09), para poder iterar y
+# detectar problemas/mejoras más fácil con un universo más chico — "luego
+# escalamos". Aplica a TODO el proyecto (scraping, dedupe, F4, sitio), no
+# solo a un portal: ver ingest/snapshot.py (all_barrios, filtro de
+# ambientes_min). Para volver a escalar: anillo_activo -> true,
+# ambientes_min -> null.
+alcance:
+  anillo_activo: false   # solo se scrapea nucleo (Velez Sarsfield, Floresta) + propia (Monte Castro)
+  ambientes_min: 3       # descarta avisos de 1-2 ambientes y los que no informan ambientes
+
 # F4 (analysis/valuation.py): a qué barrios se expande la búsqueda de
 # comparables cuando el barrio solo no llega a 30 avisos. Geografía general
 # de CABA curada a mano, NO medida (sin geohash/lat-lon todavía) — es una
