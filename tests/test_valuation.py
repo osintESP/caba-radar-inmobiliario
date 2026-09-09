@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from analysis.valuation import audit_property
+from analysis.valuation import audit_candidates, audit_property
 
 ADYACENTES = {
     "Monte Castro": ["Velez Sarsfield", "Floresta"],
@@ -126,3 +126,65 @@ def test_mi_propiedad_and_a_candidate_use_the_identical_code_path():
     candidata_identica = audit_property(df, "Monte Castro", "departamento", 3, 72.0, ADYACENTES, usd_m2_sujeto=1806.0)
 
     assert mi_propiedad == candidata_identica
+
+
+def test_audit_candidates_computes_percentil_for_every_row():
+    """El percentil/mediana de zona ya no es exclusivo de 'mi propiedad' —
+    se calcula para cada aviso del pool (motivado por la pregunta del
+    usuario: "si aplica en mi vivienda por qué no lo extendemos al resto")."""
+    # 31 filas: al excluirse a sí misma cada una, quedan 30 comparables —
+    # justo el mínimo — así se puede afirmar veredicto "ok" para todas.
+    rows = [_comp(f"MC{i}", "Monte Castro", 1000 + i * 100) for i in range(31)]
+    df = _make_df(rows)
+
+    resultado = audit_candidates(df, ADYACENTES)
+
+    assert set(resultado["portal_id"]) == {f"MC{i}" for i in range(31)}
+    por_id = resultado.set_index("portal_id")
+    assert por_id.loc["MC0", "veredicto_zona"] == "ok"
+    assert por_id.loc["MC0", "n_comparables_zona"] == 30  # excluido de su propio pool
+
+
+def test_audit_candidates_excludes_subject_from_its_own_pool():
+    """Regresión directa del bug que motivó `excluir_portal_id`: si no se
+    excluye, el más barato del pool nunca puede caer en percentil 0 (se
+    compara contra sí mismo, que siempre es >= a sí mismo)."""
+    rows = [_comp(f"MC{i}", "Monte Castro", 1000 + i * 100) for i in range(31)]
+    df = _make_df(rows)
+
+    resultado = audit_candidates(df, ADYACENTES).set_index("portal_id")
+
+    assert resultado.loc["MC0", "percentil_zona"] == 0.0  # el más barato, comparado contra los otros 29
+
+
+def test_audit_candidates_skips_rows_missing_m2_or_usd_m2():
+    rows = [_comp(f"MC{i}", "Monte Castro", 1800) for i in range(30)]
+    rows.append(_comp("SIN-M2", "Monte Castro", 1800))
+    df = _make_df(rows)
+    df.loc[df["portal_id"] == "SIN-M2", ["m2_cubiertos", "usd_m2"]] = float("nan")
+
+    resultado = audit_candidates(df, ADYACENTES)
+
+    assert "SIN-M2" not in set(resultado["portal_id"])
+
+
+def test_audit_candidates_insufficient_pool_returns_insuficiente_verdict():
+    rows = [_comp(f"MC{i}", "Monte Castro", 1800) for i in range(5)]  # muy pocos, sin adyacentes que ayuden
+    df = _make_df(rows)
+
+    resultado = audit_candidates(df, {}).set_index("portal_id")
+
+    assert (resultado["veredicto_zona"] == "insuficiente").all()
+    assert resultado["percentil_zona"].isna().all()
+
+
+def test_audit_candidates_empty_df_returns_empty_with_expected_columns():
+    resultado = audit_candidates(_make_df([]), ADYACENTES)
+    assert list(resultado.columns) == [
+        "portal_id",
+        "usd_m2_mediana_zona",
+        "percentil_zona",
+        "n_comparables_zona",
+        "veredicto_zona",
+    ]
+    assert resultado.empty

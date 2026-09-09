@@ -29,6 +29,10 @@ def _row(**overrides):
         "es_outlier": False,
         "es_nuevo": False,
         "tags": None,
+        "usd_m2_mediana_zona": None,
+        "percentil_zona": None,
+        "n_comparables_zona": None,
+        "veredicto_zona": None,
     }
     base.update(overrides)
     return base
@@ -90,3 +94,19 @@ def test_duplicate_group_shows_only_cheapest_with_count():
     assert 135000.0 not in avisos_por_precio
     assert avisos_por_precio[130000.0]["n_duplicados"] == 2
     assert avisos_por_precio[99000.0]["n_duplicados"] == 1
+
+
+def test_percentil_zona_pasa_a_traves_para_cada_candidata():
+    """F4 extendido (analysis/valuation.py::audit_candidates): el sitio
+    debe mostrar el percentil/mediana de zona de cada aviso, no solo de
+    'mi propiedad' — estas columnas ya vienen mergeadas en el DataFrame
+    antes de llegar acá (ver ingest/run_daily.py)."""
+    df = pd.DataFrame(
+        [_row(percentil_zona=44.0, usd_m2_mediana_zona=1850.0, n_comparables_zona=35, veredicto_zona="ok")]
+    )
+    latest = build_latest_json(df)
+    aviso = latest["avisos"][0]
+    assert aviso["percentil_zona"] == 44.0
+    assert aviso["usd_m2_mediana_zona"] == 1850.0
+    assert aviso["n_comparables_zona"] == 35
+    assert aviso["veredicto_zona"] == "ok"

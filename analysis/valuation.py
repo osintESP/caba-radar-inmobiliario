@@ -114,3 +114,47 @@ def audit_property(
         percentil_sujeto=percentil_sujeto,
         veredicto="ok",
     )
+
+
+def audit_candidates(df: pd.DataFrame, adyacentes: dict[str, list[str]]) -> pd.DataFrame:
+    """Corre `audit_property()` para cada aviso de `df` contra el resto de
+    sí mismo — la misma auditoría que antes solo se calculaba para "mi
+    propiedad" (regla anti-sesgo del módulo). Devuelve `portal_id` + las
+    columnas nuevas para mergear sobre el DataFrame que alimenta el sitio.
+
+    O(n²) — un `audit_property()` por fila, cada uno filtrando el pool
+    entero. A la escala actual (cientos de avisos por corrida) tarda
+    segundos; si el universo crece mucho habría que precalcular por grupo
+    (barrio, tipo, condición) en vez de recorrer fila por fila.
+    """
+    columnas = ["portal_id", "usd_m2_mediana_zona", "percentil_zona", "n_comparables_zona", "veredicto_zona"]
+    if df.empty:
+        return pd.DataFrame(columns=columnas)
+
+    filas = []
+    for row in df.itertuples():
+        # Sin m²/USD-m² propios no hay nada que ubicar en una distribución.
+        if pd.isna(row.m2_cubiertos) or pd.isna(row.usd_m2):
+            continue
+        ambientes = row.ambientes if pd.notna(row.ambientes) else None
+        auditoria = audit_property(
+            df,
+            barrio=row.barrio,
+            tipo=row.tipo,
+            ambientes=ambientes,
+            m2_cubiertos=row.m2_cubiertos,
+            adyacentes=adyacentes,
+            usd_m2_sujeto=row.usd_m2,
+            condicion=row.condicion,
+            excluir_portal_id=row.portal_id,
+        )
+        filas.append(
+            {
+                "portal_id": row.portal_id,
+                "usd_m2_mediana_zona": auditoria.usd_m2_mediana,
+                "percentil_zona": auditoria.percentil_sujeto,
+                "n_comparables_zona": auditoria.n_comparables,
+                "veredicto_zona": auditoria.veredicto,
+            }
+        )
+    return pd.DataFrame(filas, columns=columnas)

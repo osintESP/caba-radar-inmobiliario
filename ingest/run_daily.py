@@ -16,8 +16,9 @@ viejos o corruptos sin avisar (PLAN-radar-inmobiliario.md, sección 13):
 3. Reconstruye el SQLite efímero desde todos los parquets (valida que el
    schema completo sigue aplicando limpio).
 4. Arma data/latest.json a partir del snapshot del día.
-5. Audita "mi propiedad" contra comparables reales (F4, sección 10) con
-   EXACTAMENTE el mismo motor que cualquier candidata — sin rama especial.
+5. Audita contra comparables reales (F4, sección 10) tanto "mi propiedad"
+   como CADA candidata visible en la tabla, con exactamente el mismo motor
+   (analysis/valuation.py::audit_property) — sin rama especial para ninguna.
 6. Detecta avisos que desaparecieron desde el snapshot anterior (base de
    F6, ingest/price_events.py) y los acumula en data/price_events.parquet.
 """
@@ -31,7 +32,7 @@ from pathlib import Path
 
 from analysis.db import rebuild_from_snapshots
 from analysis.latest import build_latest_json, deduplicated_view
-from analysis.valuation import audit_property
+from analysis.valuation import audit_candidates, audit_property
 from ingest.normalize import check_parse_rate
 from ingest.price_events import append_events, detect_delistings
 from ingest.snapshot import CONFIG_DIR, SNAPSHOTS_DIR, load_yaml, run_snapshot
@@ -41,11 +42,8 @@ LATEST_JSON_PATH = DATA_DIR / "latest.json"
 PRICE_EVENTS_PATH = DATA_DIR / "price_events.parquet"
 
 
-def _audit_mi_propiedad(df) -> dict:
+def _audit_mi_propiedad(comparables_pool, adyacentes: dict) -> dict:
     mi_propiedad = load_yaml(CONFIG_DIR / "mi_propiedad.yaml")["mi_propiedad"]
-    adyacentes = load_yaml(CONFIG_DIR / "barrios.yaml").get("adyacentes", {})
-
-    comparables_pool = deduplicated_view(df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()])
     usd_m2_declarado = mi_propiedad["precio_venta_max_usd"] / mi_propiedad["m2_cubiertos"]
 
     auditoria = audit_property(
@@ -91,8 +89,17 @@ def main() -> int:
     new_delistings = detect_delistings(df, SNAPSHOTS_DIR, current_snapshot_path, event_at=fecha)
     all_events = append_events(new_delistings, PRICE_EVENTS_PATH)
 
+    adyacentes = load_yaml(CONFIG_DIR / "barrios.yaml").get("adyacentes", {})
+    comparables_pool = deduplicated_view(df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()])
+
+    # F4 extendido a todo candidato visible, no solo "mi propiedad" (regla
+    # anti-sesgo, analysis/valuation.py): mergea el percentil/mediana de
+    # cada aviso contra el resto del pool antes de armar el JSON del sitio.
+    candidatos_auditados = audit_candidates(comparables_pool, adyacentes)
+    df = df.merge(candidatos_auditados, on="portal_id", how="left")
+
     latest = build_latest_json(df)
-    latest["mi_propiedad"] = _audit_mi_propiedad(df)
+    latest["mi_propiedad"] = _audit_mi_propiedad(comparables_pool, adyacentes)
     latest["n_desaparecidos_hoy"] = int(len(new_delistings))
     latest["n_eventos_acumulados"] = int(len(all_events))
     DATA_DIR.mkdir(parents=True, exist_ok=True)
