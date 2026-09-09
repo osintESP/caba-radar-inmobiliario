@@ -94,6 +94,7 @@ def normalize_listing(
         "lon": record.get("lon"),
         "titulo": record.get("titulo"),
         "descripcion": record.get("descripcion"),
+        "tags": record.get("tags"),
         "direccion": record.get("direccion"),
         "imagen_url": record.get("imagen_url"),
         "es_outlier": es_outlier,

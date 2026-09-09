@@ -2,7 +2,7 @@ import types
 
 import pandas as pd
 
-from ingest.snapshot import _scrape_browser_portal, load_known_portal_ids
+from ingest.snapshot import _enrich_descriptions, _scrape_browser_portal, load_known_descriptions, load_known_portal_ids
 
 
 def test_load_known_portal_ids_reads_all_prior_snapshots(tmp_path):
@@ -66,3 +66,68 @@ def test_scrape_browser_portal_partial_pagination_failure_keeps_earlier_pages():
     records = _scrape_browser_portal(fake_module, browser=None, barrios_cfg=barrios_cfg)
 
     assert records == [{"portal_id": "pagina-1"}]
+
+
+def test_load_known_descriptions_skips_rows_without_descripcion(tmp_path):
+    pd.DataFrame(
+        [
+            {"portal_id": "A", "descripcion": "apto credito y quincho", "tags": "apto_credito,quincho"},
+            {"portal_id": "B", "descripcion": None, "tags": None},  # nunca se enriqueció
+        ]
+    ).to_parquet(tmp_path / "2026-01-01.parquet", index=False)
+
+    known = load_known_descriptions(tmp_path)
+
+    assert set(known) == {"A"}
+    assert known["A"]["tags"] == "apto_credito,quincho"
+
+
+def test_enrich_descriptions_skips_portals_without_fetch_description():
+    records = [{"portal_id": "AP1", "url": "https://x"}]
+    fake_module = types.SimpleNamespace(__name__="fake_portal")  # sin fetch_description
+
+    _enrich_descriptions(records, fake_module, browser=None, snapshots_dir=None, barrios_cfg={})
+
+    assert "descripcion" not in records[0]  # no se tocó nada
+
+
+def test_enrich_descriptions_fetches_new_and_reuses_known(tmp_path):
+    pd.DataFrame(
+        [{"portal_id": "ZP1", "descripcion": "ya conocido apto credito", "tags": "apto_credito"}]
+    ).to_parquet(tmp_path / "2026-01-01.parquet", index=False)
+
+    calls = []
+
+    def fake_fetch_description(browser, url):
+        calls.append(url)
+        return "PH con quincho y parrilla"
+
+    fake_module = types.SimpleNamespace(__name__="fake_portal", fetch_description=fake_fetch_description)
+
+    records = [
+        {"portal_id": "ZP1", "url": "https://x/1"},  # ya conocido, no debe pedir de nuevo
+        {"portal_id": "ZP2", "url": "https://x/2"},  # nuevo, se pide
+    ]
+    barrios_cfg = {"scraping": {"max_new_descriptions_por_corrida": 10}}
+
+    _enrich_descriptions(records, fake_module, browser=None, snapshots_dir=tmp_path, barrios_cfg=barrios_cfg)
+
+    assert calls == ["https://x/2"]  # solo se pidio la del nuevo
+    assert records[0]["descripcion"] == "ya conocido apto credito"
+    assert records[0]["tags"] == "apto_credito"
+    assert records[1]["descripcion"] == "PH con quincho y parrilla"
+    assert set(records[1]["tags"].split(",")) == {"quincho", "parrilla"}
+
+
+def test_enrich_descriptions_respects_daily_cap(tmp_path):
+    def fake_fetch_description(browser, url):
+        return "algo apto credito"
+
+    fake_module = types.SimpleNamespace(__name__="fake_portal", fetch_description=fake_fetch_description)
+    records = [{"portal_id": f"ZP{i}", "url": f"https://x/{i}"} for i in range(5)]
+    barrios_cfg = {"scraping": {"max_new_descriptions_por_corrida": 2}}
+
+    _enrich_descriptions(records, fake_module, browser=None, snapshots_dir=tmp_path, barrios_cfg=barrios_cfg)
+
+    con_descripcion = [r for r in records if r.get("descripcion") is not None]
+    assert len(con_descripcion) == 2  # respeta el tope, el resto queda para mañana

@@ -39,7 +39,7 @@ from typing import Any, Optional
 import pandas as pd
 import yaml
 
-from ingest import argenprop_scraper, dedupe, meli_scraper, zonaprop_scraper
+from ingest import argenprop_scraper, dedupe, keywords, meli_scraper, zonaprop_scraper
 from ingest.browser_utils import browser_session
 from ingest.fx_mep import get_mep_rate
 from ingest.normalize import normalize_batch
@@ -96,6 +96,25 @@ def load_known_attributes(snapshots_dir: Path) -> dict[str, dict[str, Any]]:
     return known
 
 
+def load_known_descriptions(snapshots_dir: Path) -> dict[str, dict[str, Any]]:
+    """Descripción + tags ya extraídos por portal_id, de todos los
+    snapshots existentes — no volver a visitar el detalle de un aviso
+    solo para releer su descripción (no cambia)."""
+    known: dict[str, dict[str, Any]] = {}
+    for path in sorted(snapshots_dir.glob("*.parquet")):
+        try:
+            df = pd.read_parquet(path)
+        except Exception:
+            continue
+        if "portal_id" not in df.columns or "descripcion" not in df.columns:
+            continue
+        for _, row in df.iterrows():
+            if pd.isna(row.get("descripcion")):
+                continue
+            known[row["portal_id"]] = {"descripcion": row.get("descripcion"), "tags": row.get("tags")}
+    return known
+
+
 def load_known_portal_ids(snapshots_dir: Path) -> set[str]:
     """Todos los portal_id vistos alguna vez en un snapshot anterior — para
     marcar como "nuevo" cualquier aviso de hoy que no esté acá."""
@@ -136,6 +155,42 @@ def _scrape_browser_portal(
     return records
 
 
+def _enrich_descriptions(
+    records: list[dict[str, Any]],
+    scraper_module: Any,
+    browser: Any,
+    snapshots_dir: Path,
+    barrios_cfg: dict[str, Any],
+) -> None:
+    """Agrega `descripcion` + `tags` (ingest/keywords.py) a cada record, in
+    place. Mismo patrón que el detalle de ML: caro (1 request por aviso),
+    así que solo se pide para avisos nuevos, con tope diario, reusando lo
+    ya extraído en corridas anteriores (la descripción no cambia)."""
+    if not hasattr(scraper_module, "fetch_description"):
+        return  # este portal todavía no soporta descripción (ver ingest/keywords.py)
+
+    known = load_known_descriptions(snapshots_dir)
+    max_new = barrios_cfg.get("scraping", {}).get("max_new_descriptions_por_corrida", 300)
+    new_fetches = 0
+
+    for record in records:
+        pid = record["portal_id"]
+        if pid in known:
+            record["descripcion"] = known[pid]["descripcion"]
+            record["tags"] = known[pid]["tags"]
+            continue
+        if new_fetches >= max_new:
+            continue  # sin descripcion por hoy (None, nunca imputado); se reintenta mañana
+        try:
+            descripcion = scraper_module.fetch_description(browser, record["url"])
+        except Exception as exc:  # noqa: BLE001 — un aviso puntual no debe tirar el resto
+            print(f"AVISO: no se pudo traer la descripción de {pid}: {exc}")
+            descripcion = None
+        record["descripcion"] = descripcion
+        record["tags"] = ",".join(keywords.extract_tags(descripcion)) if descripcion else None
+        new_fetches += 1
+
+
 def run_snapshot(
     captured_at: Optional[str] = None,
     barrios_cfg_path: Path = CONFIG_DIR / "barrios.yaml",
@@ -165,7 +220,9 @@ def run_snapshot(
         try:
             with browser_session() as browser:
                 if fuentes.get("zonaprop", True):
-                    raw_records.extend(_scrape_browser_portal(zonaprop_scraper, browser, barrios_cfg))
+                    zonaprop_records = _scrape_browser_portal(zonaprop_scraper, browser, barrios_cfg)
+                    _enrich_descriptions(zonaprop_records, zonaprop_scraper, browser, snapshots_dir, barrios_cfg)
+                    raw_records.extend(zonaprop_records)
                 if fuentes.get("argenprop", True):
                     raw_records.extend(_scrape_browser_portal(argenprop_scraper, browser, barrios_cfg))
         except Exception as exc:  # noqa: BLE001 — degradación intencional, no silenciosa: se imprime igual

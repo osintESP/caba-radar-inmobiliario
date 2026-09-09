@@ -28,6 +28,7 @@ def _row(**overrides):
         "fx_source": "dolarapi:bolsa",
         "es_outlier": False,
         "es_nuevo": False,
+        "tags": None,
     }
     base.update(overrides)
     return base

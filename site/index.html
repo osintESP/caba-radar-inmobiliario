@@ -61,6 +61,10 @@
         Precio USD máx.
         <input type="number" id="filter-precio-max" min="0" step="1000" placeholder="—" />
       </label>
+      <label>
+        Buscar (ej. apto_credito, quincho)
+        <input type="text" id="filter-tags" placeholder="—" />
+      </label>
       <label class="filters__checkbox">
         <input type="checkbox" id="filter-cochera" />
         Con cochera
@@ -93,11 +97,12 @@
               <th data-key="portal" data-type="string">Portal</th>
               <th data-key="n_duplicados" data-type="number" title="Cuántos avisos de otras inmobiliarias/portales se agruparon acá">Dup.</th>
               <th data-key="captured_at" data-type="string">Capturado</th>
+              <th data-key="tags" data-type="string" title="Extraído de la descripción del aviso, solo Zonaprop por ahora">Tags</th>
               <th>Aviso</th>
             </tr>
           </thead>
           <tbody id="listings-body">
-            <tr><td colspan="18">Sin datos todavía.</td></tr>
+            <tr><td colspan="19">Sin datos todavía.</td></tr>
           </tbody>
         </table>
       </div>

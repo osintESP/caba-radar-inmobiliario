@@ -110,6 +110,7 @@ function applyFilters(rows) {
   const precioMax = numFilterValue("filter-precio-max");
   const soloConCochera = document.getElementById("filter-cochera").checked;
   const soloNuevos = document.getElementById("filter-nuevo").checked;
+  const tagsQuery = document.getElementById("filter-tags").value.trim().toLowerCase();
 
   return rows.filter((r) => {
     if (portal && r.portal !== portal) return false;
@@ -123,6 +124,7 @@ function applyFilters(rows) {
     if (precioMax !== null && !(r.price_usd <= precioMax)) return false;
     if (soloConCochera && !(r.cocheras > 0)) return false;
     if (soloNuevos && !r.es_nuevo) return false;
+    if (tagsQuery && !(r.tags || "").toLowerCase().includes(tagsQuery)) return false;
     return true;
   });
 }
@@ -146,7 +148,7 @@ function render() {
   tbody.innerHTML = "";
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="18">Ningún aviso coincide con el filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="19">Ningún aviso coincide con el filtro.</td></tr>';
     return;
   }
 
@@ -172,6 +174,7 @@ function render() {
       <td>${r.portal ?? "s/d"}</td>
       <td>${dup > 1 ? `×${dup}` : "—"}</td>
       <td>${fmtDate(r.captured_at)}</td>
+      <td>${r.tags ? r.tags.split(",").join(", ") : "—"}</td>
       <td><a href="${r.url}" target="_blank" rel="noopener">Ver</a></td>
     `;
     tbody.appendChild(tr);
@@ -208,7 +211,7 @@ function setupSortableHeaders() {
 
 function setupFilters() {
   const changeIds = ["filter-portal", "filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera", "filter-nuevo"];
-  const inputIds = ["filter-ambientes-min", "filter-ambientes-max", "filter-banos-min", "filter-precio-min", "filter-precio-max"];
+  const inputIds = ["filter-ambientes-min", "filter-ambientes-max", "filter-banos-min", "filter-precio-min", "filter-precio-max", "filter-tags"];
   changeIds.forEach((id) => document.getElementById(id).addEventListener("change", render));
   inputIds.forEach((id) => document.getElementById(id).addEventListener("input", render));
 }

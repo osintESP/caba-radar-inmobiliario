@@ -21,6 +21,7 @@ Limitaciones conocidas, documentadas en vez de adivinadas:
 
 from __future__ import annotations
 
+import html as html_lib
 import re
 from typing import Any, Optional
 from urllib.parse import urljoin
@@ -59,6 +60,26 @@ def _parse_number(text: str) -> Optional[float]:
     if not m or not any(ch.isdigit() for ch in m.group()):
         return None
     return float(m.group().replace(".", "").replace(",", "."))
+
+
+_DESCRIPTION_RE = re.compile(r'description-module__wrapper-description[^"]*">(.*?)</div>', re.S)
+_TAG_RE = re.compile(r"<[^>]+>")
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def fetch_description(browser: Browser, url: str) -> Optional[str]:
+    """Visita el detalle de un aviso puntual y devuelve el texto completo
+    de la descripción (sin HTML). Cara: 1 request por aviso — igual costo
+    que el detalle de ML, ver ingest/snapshot.py para el cupo diario."""
+    page_html = fetch_rendered_html(browser, url)
+    m = _DESCRIPTION_RE.search(page_html)
+    if not m:
+        return None
+    raw = re.sub(r"<br\s*/?>", " ", m.group(1))
+    text = _TAG_RE.sub(" ", raw)
+    text = html_lib.unescape(text)
+    text = _WHITESPACE_RE.sub(" ", text).strip()
+    return text or None
 
 
 def build_search_url(tipo: str, barrio_slug: str, page: int = 1) -> str:

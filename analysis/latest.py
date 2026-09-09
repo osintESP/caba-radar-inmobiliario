@@ -38,6 +38,7 @@ DISPLAY_COLUMNS = [
     "captured_at",
     "n_duplicados",
     "es_nuevo",
+    "tags",
 ]
 
 
@@ -70,7 +71,13 @@ def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
 
     records = []
     if not visible.empty:
-        for record in visible[DISPLAY_COLUMNS].to_dict(orient="records"):
+        # Tolerante a columnas nuevas ausentes en un DataFrame más viejo
+        # (ej. si algún día se lee un snapshot de antes de que existiera
+        # "tags"/"es_nuevo"): se agregan como None en vez de romper. En la
+        # corrida diaria normal esto nunca hace falta — run_snapshot()
+        # siempre las genera todas — pero abarata reprocesar histórico.
+        display_view = visible.reindex(columns=DISPLAY_COLUMNS)
+        for record in display_view.to_dict(orient="records"):
             # pandas castea None de vuelta a NaN en columnas float (no puede
             # guardar None en un float64) — json.dumps() serializaría eso
             # como el literal `NaN`, que es JSON inválido y rompe

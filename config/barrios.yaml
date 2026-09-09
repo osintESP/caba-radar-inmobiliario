@@ -77,6 +77,13 @@ scraping:
   # arriba: no descargar miles de fotos de golpe.
   max_new_phash_fetches_por_corrida: 500
 
+  # Palabras clave (ingest/keywords.py): la descripción completa de un
+  # aviso solo está en su página de DETALLE (no en el listado, a pesar de
+  # que el resto de los datos de Zonaprop sí estén ahí) — mismo costo por
+  # aviso que el detalle de ML. Por ahora solo Zonaprop soporta esto
+  # (fetch_description); ML/Argenprop quedan para una iteración futura.
+  max_new_descriptions_por_corrida: 300
+
 fuentes:
   # Verificado con .github/workflows/test-f2-browsers.yml (corrida real en
   # Actions, no local): Zonaprop SÍ pasa el challenge de Cloudflare desde
