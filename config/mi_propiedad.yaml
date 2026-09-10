@@ -9,7 +9,7 @@ mi_propiedad:
   ascensor: null            # completar
   expensas_ars: null        # completar
   precio_venta_max_usd: 130000    # tasación del corredor — el número real
-  precio_publicacion_usd: 140000  # ancla de negociación, NO es valor
+  precio_publicacion_usd: 142000  # ancla de negociación, NO es valor
   estado_venta: "sin_publicar"
 escenarios:
   optimista_usd: 134000

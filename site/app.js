@@ -4,7 +4,6 @@
 const DATA_URL = "data/latest.json";
 
 const fmtNum = (n) => (n === null || n === undefined ? "s/d" : Math.round(n).toLocaleString("es-AR"));
-const fmtBool = (b) => (b === null || b === undefined ? "s/d" : b ? "Sí" : "No");
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString("es-AR") : "s/d");
 
 let currentData = [];
@@ -148,7 +147,7 @@ function render() {
   tbody.innerHTML = "";
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="21">Ningún aviso coincide con el filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="18">Ningún aviso coincide con el filtro.</td></tr>';
     return;
   }
 
@@ -175,12 +174,9 @@ function render() {
       <td>${r.cocheras ?? "s/d"}</td>
       <td>${fmtNum(r.expensas_ars)}</td>
       <td>${r.antiguedad ?? "s/d"}</td>
-      <td>${r.piso ?? "s/d"}</td>
-      <td>${fmtBool(r.ascensor)}</td>
       <td>${r.portal ?? "s/d"}</td>
       <td>${dup > 1 ? `×${dup}` : "—"}</td>
       <td>${fmtDate(r.captured_at)}</td>
-      <td>${r.tags ? r.tags.split(",").join(", ") : "—"}</td>
       <td><a href="${r.url}" target="_blank" rel="noopener">Ver</a></td>
     `;
     tbody.appendChild(tr);
