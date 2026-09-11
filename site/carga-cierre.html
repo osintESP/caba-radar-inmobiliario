@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cargar cierre — Radar Inmobiliario</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="masthead">
+    <div class="masthead__bar">
+      <span class="masthead__logo">RADAR</span>
+      <nav class="masthead__nav">
+        <a href="index.html">← Volver al radar</a>
+      </nav>
+    </div>
+  </div>
+
+  <div class="page">
+    <header class="hero">
+      <span class="hero__kicker">Datos de campo</span>
+      <h1>Cargar cierre</h1>
+      <p class="subtitle">
+        Un cierre real reportado por el corredor vale más que cualquier índice nacional (PLAN sección 3.2, fuente
+        A5). Completá lo que sepas y mandalo — abre un issue en el repo, sin backend ni contraseñas.
+      </p>
+    </header>
+
+    <section class="card">
+      <form id="cierre-form">
+        <div class="cierre-grid">
+          <label>
+            Barrio
+            <select id="c-barrio" required>
+              <option value="">—</option>
+              <option>Monte Castro</option>
+              <option>Velez Sarsfield</option>
+              <option>Floresta</option>
+              <option>Flores</option>
+              <option>Villa Luro</option>
+              <option>Villa Santa Rita</option>
+              <option>Villa Real</option>
+              <option>Versalles</option>
+              <option>Villa del Parque</option>
+            </select>
+          </label>
+          <label>
+            Dirección aproximada
+            <input type="text" id="c-direccion" placeholder="ej. Av. X al 1200" />
+          </label>
+          <label>
+            Tipo
+            <select id="c-tipo" required>
+              <option value="">—</option>
+              <option value="departamento">Departamento</option>
+              <option value="ph">PH</option>
+              <option value="casa">Casa</option>
+            </select>
+          </label>
+          <label>
+            Ambientes
+            <input type="number" id="c-ambientes" min="1" step="1" />
+          </label>
+          <label>
+            m² cubiertos
+            <input type="number" id="c-m2" min="1" step="1" />
+          </label>
+          <label>
+            Precio publicado (USD)
+            <input type="number" id="c-precio-publicado" min="0" step="1000" />
+          </label>
+          <label>
+            Precio de cierre (USD)
+            <input type="number" id="c-precio-cierre" min="0" step="1000" required />
+          </label>
+          <label>
+            Fuente
+            <input type="text" id="c-fuente" placeholder="ej. corredor Juan Pérez" />
+          </label>
+          <label>
+            Confianza
+            <select id="c-confianza">
+              <option value="alta">Alta</option>
+              <option value="media" selected>Media</option>
+              <option value="baja">Baja</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit" class="cierre-submit">Cargar cierre (abre GitHub)</button>
+        <p id="cierre-error" class="cierre-error" hidden>Completá barrio, tipo y precio de cierre.</p>
+      </form>
+    </section>
+  </div>
+
+  <script src="carga-cierre.js"></script>
+</body>
+</html>

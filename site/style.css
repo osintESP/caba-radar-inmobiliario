@@ -69,6 +69,24 @@ body {
   border-radius: var(--radius-sm);
 }
 
+.masthead__nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.masthead__nav a {
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.masthead__nav a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
 .masthead__live {
   display: inline-flex;
   align-items: center;
@@ -426,4 +444,164 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+.ficha-link {
+  margin-left: 0.6rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ficha-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ---- Mercado ---- */
+
+.mercado__subtitle {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mercado__chart-wrap {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+}
+
+/* ---- Modal (ficha de propiedad) ---- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* Mayor especificidad que [hidden] del navegador: sin esto, .modal
+   {display:flex} le gana a la regla por defecto y el modal queda
+   visible (y bloqueando clicks) aunque tenga el atributo `hidden`. */
+.modal[hidden] {
+  display: none;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.modal__panel {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.75rem;
+}
+
+.modal__panel h3 {
+  margin: 0 0 1.25rem;
+  padding-right: 2rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.modal__close {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  color: var(--accent);
+}
+
+.modal__empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---- Carga de cierre ---- */
+
+.cierre-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.cierre-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  gap: 0.35rem;
+}
+
+.cierre-grid select,
+.cierre-grid input {
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.cierre-submit {
+  margin-top: 1.75rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.cierre-submit:hover {
+  background: var(--accent-dark);
+}
+
+.cierre-error {
+  margin: 0.75rem 0 0;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
 }

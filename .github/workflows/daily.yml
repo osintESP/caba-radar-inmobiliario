@@ -53,14 +53,16 @@ jobs:
         run: |
           git config user.name "radar-inmobiliario-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/snapshots/ data/latest.json data/price_events.parquet
+          git add data/snapshots/ data/latest.json data/price_events.parquet data/price_history.json data/market_trends.json
           git diff --cached --quiet && echo "Sin cambios, no se commitea." || git commit -m "snapshot $(date -u +%F)"
           git push
 
-      - name: Copiar latest.json al sitio
+      - name: Copiar JSON del sitio
         run: |
           mkdir -p site/data
           cp data/latest.json site/data/latest.json
+          cp data/price_history.json site/data/price_history.json
+          cp data/market_trends.json site/data/market_trends.json
 
       - name: Preparar artifact de Pages
         uses: actions/upload-pages-artifact@v3

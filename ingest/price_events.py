@@ -1,23 +1,26 @@
-"""Detección de avisos que desaparecen del listado (base de F6,
+"""Detección de eventos de precio sobre los avisos (base de F6,
 PLAN-radar-inmobiliario.md sección 3.2, fuente A4: "la única fuente
 hiperlocal automatizada" de señal de cierre real).
 
-Si un aviso estaba activo en el snapshot anterior y hoy ya no aparece en
-el scraping, lo más probable es que se haya reservado, vendido, o dado de
-baja por otro motivo. No sabemos CUÁL de esas cosas pasó (eso requiere
-A5: preguntarle al corredor), pero la desaparición en sí es una señal
-real y gratuita — son justamente las propiedades "formadoras de precio"
-de la zona.
+Dos tipos de evento, ambos comparando el snapshot de HOY contra el más
+reciente anterior (no contra todo el histórico: interesa el cambio más
+reciente, no re-detectar el mismo hueco/recorte todos los días):
 
-Se compara el snapshot de HOY contra el más reciente anterior (no contra
-todo el histórico: interesa el cambio más reciente, no re-detectar el
-mismo hueco todos los días). El resultado se ACUMULA en
-`data/price_events.parquet` — mismo criterio que `data/snapshots/`: nunca
-se borra nada, cada corrida solo agrega filas nuevas.
+- `delisted`: el aviso estaba activo ayer y hoy no aparece. Lo más
+  probable es que se haya reservado, vendido, o dado de baja por otro
+  motivo — no sabemos CUÁL (eso requiere A5: preguntarle al corredor),
+  pero la desaparición en sí es una señal real y gratuita.
+- `price_change`: el aviso sigue activo pero su `price_usd` cambió.
+  Recorte o suba — el signo de `pct_change` distingue uno de otro. Es
+  el dato que le falta a "brecha neta" (F5): separar el recorte que el
+  aviso YA hizo del margen que le queda (sección 3.1 del plan).
 
-Deliberadamente simple para esta primera versión: solo detecta
-"delisted" (desapareció). "relisted" (reapareció después de haber
-desaparecido) queda para una iteración futura.
+El resultado se ACUMULA en `data/price_events.parquet` — mismo criterio
+que `data/snapshots/`: nunca se borra nada, cada corrida solo agrega
+filas nuevas.
+
+Deliberadamente simple para esta primera versión: "relisted" (reapareció
+después de haber desaparecido) queda para una iteración futura.
 """
 
 from __future__ import annotations
@@ -30,11 +33,14 @@ import pandas as pd
 EVENTS_COLUMNS = [
     "portal",
     "portal_id",
-    "event_type",  # 'delisted' (por ahora el único)
+    "event_type",  # 'delisted' | 'price_change'
     "event_at",
     "barrio",
     "tipo",
     "price_usd",
+    "old_price_usd",  # solo 'price_change'
+    "new_price_usd",  # solo 'price_change'
+    "pct_change",  # solo 'price_change'
     "url",
     "titulo",
 ]
@@ -63,7 +69,39 @@ def detect_delistings(current_df: pd.DataFrame, snapshots_dir: Path, current_pat
     events = gone[["portal", "portal_id", "barrio", "tipo", "price_usd", "url", "titulo"]].copy()
     events["event_type"] = "delisted"
     events["event_at"] = event_at
+    events["old_price_usd"] = None
+    events["new_price_usd"] = None
+    events["pct_change"] = None
     return events[EVENTS_COLUMNS]
+
+
+def detect_price_changes(current_df: pd.DataFrame, snapshots_dir: Path, current_path: Path, event_at: str) -> pd.DataFrame:
+    """Avisos presentes en ambos snapshots (hoy y el anterior) cuyo
+    `price_usd` cambió."""
+    previous_path = _previous_snapshot_path(snapshots_dir, current_path)
+    if previous_path is None or current_df.empty:
+        return pd.DataFrame(columns=EVENTS_COLUMNS)
+
+    previous_df = pd.read_parquet(previous_path)
+    if "portal_id" not in previous_df.columns or previous_df.empty:
+        return pd.DataFrame(columns=EVENTS_COLUMNS)
+
+    merged = current_df[["portal", "portal_id", "barrio", "tipo", "price_usd", "url", "titulo"]].merge(
+        previous_df[["portal_id", "price_usd"]].rename(columns={"price_usd": "old_price_usd"}),
+        on="portal_id",
+        how="inner",
+    )
+    changed = merged[
+        merged["price_usd"].notna() & merged["old_price_usd"].notna() & (merged["price_usd"] != merged["old_price_usd"])
+    ].copy()
+    if changed.empty:
+        return pd.DataFrame(columns=EVENTS_COLUMNS)
+
+    changed["new_price_usd"] = changed["price_usd"]
+    changed["pct_change"] = (changed["new_price_usd"] - changed["old_price_usd"]) / changed["old_price_usd"] * 100
+    changed["event_type"] = "price_change"
+    changed["event_at"] = event_at
+    return changed[EVENTS_COLUMNS]
 
 
 def append_events(events_df: pd.DataFrame, events_path: Path) -> pd.DataFrame:

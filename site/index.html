@@ -10,7 +10,10 @@
   <div class="masthead">
     <div class="masthead__bar">
       <span class="masthead__logo">RADAR</span>
-      <span class="masthead__live"><span class="masthead__dot"></span>EN VIVO</span>
+      <nav class="masthead__nav">
+        <a href="carga-cierre.html">Cargar cierre</a>
+        <span class="masthead__live"><span class="masthead__dot"></span>EN VIVO</span>
+      </nav>
     </div>
   </div>
 
@@ -92,6 +95,7 @@
               <th data-key="barrio" data-type="string">Barrio</th>
               <th data-key="tipo" data-type="string">Tipo</th>
               <th data-key="price_usd" data-type="number">Precio USD</th>
+              <th data-key="brecha_neta_usd" data-type="number" title="Cuánto hay que poner de más (o cuánto sobra, si es negativo) para pasarse de tu propiedad a esta candidata, neto de comisiones/sellos/escritura (config/costos.yaml). Brecha de negociación estimada única por ahora, no por barrio — ver PLAN sección 3.3">Brecha neta</th>
               <th data-key="usd_m2" data-type="number">USD/m²</th>
               <th data-key="usd_m2_mediana_zona" data-type="number" title="Mediana de USD/m² entre comparables reales de su barrio/tipo/ambientes/m² (F4). Solo MELI: Zonaprop no expone m² cubierto en el listado.">Mediana zona</th>
               <th data-key="percentil_zona" data-type="number" title="Dónde cae su USD/m² entre esos comparables: 0 = el más barato, 100 = el más caro. Solo MELI: Zonaprop no expone m² cubierto en el listado.">Percentil</th>
@@ -105,19 +109,39 @@
               <th data-key="portal" data-type="string">Portal</th>
               <th data-key="n_duplicados" data-type="number" title="Cuántos avisos de otras inmobiliarias/portales se agruparon acá">Dup.</th>
               <th data-key="captured_at" data-type="string">Capturado</th>
-              <th>Aviso</th>
+              <th>Aviso / Ficha</th>
             </tr>
           </thead>
           <tbody id="listings-body">
-            <tr><td colspan="18">Sin datos todavía.</td></tr>
+            <tr><td colspan="19">Sin datos todavía.</td></tr>
           </tbody>
         </table>
       </div>
       <div class="table-card__fade" id="table-fade"></div>
       <p class="table-card__note">USD/m², Mediana zona y Percentil solo están disponibles para MELI por ahora: Zonaprop no expone m² cubierto en la página de listado. Piso, Ascensor y Tags se sacaron de la tabla por baja cobertura de datos — Tags sigue funcionando en el buscador de arriba.</p>
     </section>
+
+    <section id="mercado" class="card mercado">
+      <h2>Mercado</h2>
+      <p class="mercado__subtitle">Avisos activos por barrio y evolución de la mediana de USD/m² a través de los snapshots diarios.</p>
+      <div id="mercado-stats" class="mp-stats"></div>
+      <div class="mercado__chart-wrap">
+        <canvas id="mercado-chart" height="110"></canvas>
+      </div>
+    </section>
   </div>
 
+  <div id="ficha-modal" class="modal" hidden>
+    <div class="modal__backdrop" data-close="ficha"></div>
+    <div class="modal__panel">
+      <button type="button" class="modal__close" data-close="ficha" aria-label="Cerrar">×</button>
+      <h3 id="ficha-title">Ficha de propiedad</h3>
+      <p id="ficha-empty" class="modal__empty" hidden>Todavía no hay suficiente historial de precios para este aviso (necesita aparecer en al menos 2 snapshots).</p>
+      <canvas id="ficha-canvas" height="220"></canvas>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -6,6 +6,8 @@ on:
     paths:
       - "site/**"
       - "data/latest.json"
+      - "data/price_history.json"
+      - "data/market_trends.json"
   workflow_dispatch: {}
 
 permissions:
@@ -26,10 +28,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copiar latest.json al sitio
+      - name: Copiar JSON del sitio
         run: |
           mkdir -p site/data
           cp data/latest.json site/data/latest.json
+          cp data/price_history.json site/data/price_history.json
+          cp data/market_trends.json site/data/market_trends.json
 
       - name: Preparar artifact de Pages
         uses: actions/upload-pages-artifact@v3

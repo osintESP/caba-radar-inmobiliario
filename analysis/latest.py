@@ -21,6 +21,8 @@ import pandas as pd
 
 DISPLAY_COLUMNS = [
     "portal",
+    "portal_id",
+    "titulo",
     "barrio",
     "tipo",
     "condicion",
@@ -34,6 +36,7 @@ DISPLAY_COLUMNS = [
     "percentil_zona",
     "n_comparables_zona",
     "veredicto_zona",
+    "brecha_neta_usd",
     "expensas_ars",
     "antiguedad",
     "piso",
