@@ -1,30 +1,33 @@
 :root {
   color-scheme: light dark;
-  --bg: #f5f5f7;
+  --bg: #f2f2f2;
   --card: #ffffff;
-  --fg: #1d1d1f;
-  --muted: #6e6e73;
-  --border: #d2d2d7;
-  --accent: #0071e3;
+  --fg: #12100e;
+  --muted: #5a5a5a;
+  --border: #d6d6d6;
+  --accent: #cc0000;
+  --accent-dark: #a30000;
   --accent-fg: #ffffff;
-  --good: #1d7a3c;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
-  --radius-lg: 20px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  --ink: #050505; /* negro fijo para masthead/banner/cabecera de tabla — no cambia con el tema, como el masthead de una cadena de noticias */
+  --good: #0a7d34;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 10px 24px rgba(0, 0, 0, 0.08);
+  --radius-lg: 4px;
+  --radius-md: 3px;
+  --radius-sm: 2px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #000000;
-    --card: #1c1c1e;
-    --fg: #f5f5f7;
-    --muted: #98989d;
-    --border: #38383a;
-    --accent: #2997ff;
+    --bg: #0b0b0c;
+    --card: #17181a;
+    --fg: #f2f2f2;
+    --muted: #a0a0a0;
+    --border: #2e2f31;
+    --accent: #ff2d2d;
+    --accent-dark: #cc0000;
     --accent-fg: #ffffff;
-    --good: #4ade80;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --good: #35c26a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -34,36 +37,105 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: "Helvetica Neue", Arial, "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Masthead (barra negra tipo CNN) ---- */
+
+.masthead {
+  background: var(--ink);
+  border-bottom: 4px solid var(--accent);
+}
+
+.masthead__bar {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0.55rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.masthead__logo {
+  display: inline-flex;
+  align-items: center;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  padding: 0.28rem 0.65rem;
+  border-radius: var(--radius-sm);
+}
+
+.masthead__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.masthead__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.7);
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(204, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); }
 }
 
 .page {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
+  padding: 2rem 1.5rem 4rem;
 }
 
 .hero {
-  text-align: center;
-  padding: 1.5rem 0 2.5rem;
+  padding: 1.75rem 0 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.75rem;
+}
+
+.hero__kicker {
+  display: inline-block;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.5rem;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(2rem, 5vw, 2.75rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.1rem, 5.5vw, 3.1rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 1.05;
 }
 
 .subtitle {
-  margin: 0.5rem 0 0;
+  margin: 0.6rem 0 0;
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 1.02rem;
+  font-weight: 500;
 }
 
 .card {
   background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   padding: 1.5rem 1.75rem;
@@ -71,23 +143,30 @@ body {
 }
 
 .banner {
-  padding: 0.7rem 1.1rem;
+  padding: 0.65rem 1.1rem;
   margin-bottom: 1.5rem;
   border-radius: var(--radius-sm);
-  background: var(--card);
-  box-shadow: var(--shadow);
-  font-size: 0.85rem;
-  color: var(--muted);
+  background: var(--ink);
+  color: #ffffff;
+  border-left: 4px solid var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
   text-align: center;
 }
 
 /* ---- Mi propiedad ---- */
 
+.mi-propiedad {
+  border-top: 3px solid var(--accent);
+}
+
 .mi-propiedad h2 {
   margin: 0 0 1rem;
-  font-size: 1.3rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
 }
 
 .mp-place {
@@ -95,6 +174,7 @@ body {
   color: var(--muted);
   font-size: 0.95rem;
   margin-bottom: 1.25rem;
+  font-weight: 600;
 }
 
 .mp-stats {
@@ -111,14 +191,17 @@ body {
 }
 
 .mp-stat__value {
-  font-size: 1.6rem;
-  font-weight: 600;
+  font-size: 1.7rem;
+  font-weight: 800;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
 .mp-stat__label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--muted);
 }
 
@@ -155,15 +238,22 @@ body {
 .filters label {
   display: flex;
   flex-direction: column;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted);
   gap: 0.35rem;
 }
 
 .filters select,
-.filters input[type="number"] {
+.filters input[type="number"],
+.filters input[type="text"] {
   font: inherit;
   font-size: 0.92rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
   padding: 0.45rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -188,6 +278,8 @@ body {
   align-self: center;
   color: var(--fg) !important;
   font-size: 0.92rem !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
 }
 
 /* ---- Tabla ---- */
@@ -229,12 +321,12 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-variant-numeric: tabular-nums;
 }
 
 th, td {
-  padding: 0.7rem 1rem;
+  padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--border);
   text-align: left;
   white-space: nowrap;
@@ -243,18 +335,19 @@ th, td {
 thead th {
   position: sticky;
   top: 0;
-  background: var(--card);
+  background: var(--ink);
   cursor: pointer;
   user-select: none;
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 0.78rem;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 th:hover {
   color: var(--accent);
+  background: #000000;
 }
 
 tbody tr:hover {
@@ -272,7 +365,17 @@ tbody tr.is-new:hover {
 /* Barra izquierda en vez de fondo: así se distingue de .is-new (fondo
    verde) incluso cuando un aviso es nuevo Y barato a la vez. */
 tbody tr.is-good-value {
+  box-shadow: inset 3px 0 0 0 var(--good);
+}
+
+/* Precio alto: espejo de is-good-value, misma técnica de barra lateral
+   para no pisar el fondo de .is-new cuando un aviso es nuevo Y caro. */
+tbody tr.is-high-value {
   box-shadow: inset 3px 0 0 0 var(--accent);
+}
+
+tbody tr.is-good-value.is-high-value {
+  box-shadow: inset 3px 0 0 0 var(--good), inset -3px 0 0 0 var(--accent);
 }
 
 tbody tr:last-child td {
@@ -282,31 +385,43 @@ tbody tr:last-child td {
 .badge-new {
   display: inline-block;
   padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--good) 18%, transparent);
-  color: var(--good);
-  font-size: 0.72rem;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 0.68rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .badge-good {
   display: inline-block;
   padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--good);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+}
+
+.badge-high {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-dark);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 a {
   color: var(--accent);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 a:hover {

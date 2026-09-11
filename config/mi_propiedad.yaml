@@ -8,7 +8,7 @@ mi_propiedad:
   piso: null                # completar
   ascensor: null            # completar
   expensas_ars: null        # completar
-  precio_venta_max_usd: 130000    # tasación del corredor — el número real
+  precio_venta_max_usd: 142000    # actualizado a pedido del usuario (2026-09-10) — antes 130000, la tasación del corredor
   precio_publicacion_usd: 142000  # ancla de negociación, NO es valor
   estado_venta: "sin_publicar"
 escenarios:

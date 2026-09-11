@@ -155,8 +155,10 @@ function render() {
     const tr = document.createElement("tr");
     const dup = r.n_duplicados ?? 1;
     const esBuenPrecio = r.veredicto_zona === "ok" && r.percentil_zona !== null && r.percentil_zona <= 25;
+    const esPrecioAlto = r.veredicto_zona === "ok" && r.percentil_zona !== null && r.percentil_zona >= 75;
     if (r.es_nuevo) tr.classList.add("is-new");
     if (esBuenPrecio) tr.classList.add("is-good-value");
+    if (esPrecioAlto) tr.classList.add("is-high-value");
     tr.innerHTML = `
       <td>${r.es_nuevo ? '<span class="badge-new">Nuevo</span>' : "—"}</td>
       <td>${r.barrio ?? "s/d"}</td>
@@ -165,7 +167,9 @@ function render() {
       <td>${fmtNum(r.usd_m2)}</td>
       <td>${fmtNum(r.usd_m2_mediana_zona)}</td>
       <td title="${r.veredicto_zona === "ok" ? `Sobre ${r.n_comparables_zona} comparables reales` : "Todavía no hay suficientes comparables en la zona"}">${
-        r.veredicto_zona === "ok" ? `${Math.round(r.percentil_zona)}${esBuenPrecio ? ' <span class="badge-good">Buen precio</span>' : ""}` : "s/d"
+        r.veredicto_zona === "ok"
+          ? `${Math.round(r.percentil_zona)}${esBuenPrecio ? ' <span class="badge-good">Buen precio</span>' : ""}${esPrecioAlto ? ' <span class="badge-high">Precio alto</span>' : ""}`
+          : "s/d"
       }</td>
       <td>${fmtNum(r.m2_cubiertos)}</td>
       <td>${r.ambientes ?? "s/d"}</td>
