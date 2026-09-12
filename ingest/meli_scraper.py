@@ -30,6 +30,7 @@ desde la página de listado, mucho más barata.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import random
 import re
@@ -97,6 +98,40 @@ def _parse_bool_si_no(text: str) -> Optional[bool]:
     return None
 
 
+# Ninguna antigüedad real en años pasa de ~150 — si el valor supera esto,
+# la celda de MELI trajo el año de construcción en vez de la antigüedad
+# (visto en vivo: "Antigüedad" = "1970"). Se convierte a antigüedad real
+# en vez de guardar el año como si fuera años transcurridos.
+_ANTIGUEDAD_MAX_PLAUSIBLE = 150
+
+
+def _parse_antiguedad(text: str) -> Optional[int]:
+    valor = _parse_number(text)
+    if valor is None:
+        return None
+    valor = int(valor)
+    if valor > _ANTIGUEDAD_MAX_PLAUSIBLE:
+        return max(dt.date.today().year - valor, 0)
+    return valor
+
+
+# Ninguna unidad individual (depto/PH/casa) tiene más de esto en cocheras
+# propias. Un valor más alto es casi siempre el atributo agregado de un
+# "Emprendimiento" (la tabla describe el proyecto completo, no la unidad —
+# ver docstring de fetch_detail) — se descarta a None en vez de propagar
+# un número que sabemos que está mal, mismo criterio que m2_cubiertos
+# (PLAN-radar-inmobiliario.md sección 8: nunca imputar/propagar dato falso).
+_COCHERAS_MAX_PLAUSIBLE = 4
+
+
+def _parse_cocheras(text: str) -> Optional[int]:
+    valor = _parse_number(text)
+    if valor is None:
+        return None
+    valor = int(valor)
+    return valor if valor <= _COCHERAS_MAX_PLAUSIBLE else None
+
+
 # label de la tabla -> (campo normalizado, parser)
 _SPEC_FIELD_MAP = {
     "Superficie total": ("m2_total", _parse_number),
@@ -104,9 +139,9 @@ _SPEC_FIELD_MAP = {
     "Ambientes": ("ambientes", lambda t: int(_parse_number(t)) if _parse_number(t) is not None else None),
     "Dormitorios": ("dormitorios", lambda t: int(_parse_number(t)) if _parse_number(t) is not None else None),
     "Baños": ("banos", lambda t: int(_parse_number(t)) if _parse_number(t) is not None else None),
-    "Cocheras": ("cocheras", lambda t: int(_parse_number(t)) if _parse_number(t) is not None else None),
+    "Cocheras": ("cocheras", _parse_cocheras),
     "Número de piso de la unidad": ("piso", lambda t: int(_parse_number(t)) if _parse_number(t) is not None else None),
-    "Antigüedad": ("antiguedad", lambda t: int(_parse_number(t)) if _parse_number(t) is not None else None),
+    "Antigüedad": ("antiguedad", _parse_antiguedad),
     "Expensas": ("expensas_ars", _parse_number),
     "Ascensor": ("ascensor", _parse_bool_si_no),
 }

@@ -314,6 +314,7 @@ def run_snapshot(
         usd_m2_min=outliers_cfg.get("usd_m2_min", 400),
         usd_m2_max=outliers_cfg.get("usd_m2_max", 8000),
         captured_at=captured_at,
+        price_usd_min=outliers_cfg.get("price_usd_min", 5000),
     )
 
     ambientes_min = barrios_cfg.get("alcance", {}).get("ambientes_min")

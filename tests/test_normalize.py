@@ -49,6 +49,23 @@ def test_normal_usd_m2_not_flagged(mep, extracted_factory):
     assert row["outlier_reason"] is None
 
 
+def test_price_below_floor_flagged_even_without_m2(mep, extracted_factory):
+    # Sin m2_cubiertos (típico de Zonaprop) el chequeo de usd_m2 nunca
+    # corre — este es el único que puede atrapar un precio absurdo ahí.
+    record = extracted_factory(price_amount=105_000.0, price_currency="ARS", m2_cubiertos=None)
+    row = normalize_listing(record, mep, usd_m2_min=400, usd_m2_max=8000, price_usd_min=5000)
+    assert row["price_usd"] < 5000
+    assert row["es_outlier"] is True
+    assert "price_usd" in row["outlier_reason"]
+
+
+def test_price_above_floor_not_flagged(mep, extracted_factory):
+    record = extracted_factory(price_amount=130_000.0, price_currency="USD", m2_cubiertos=None)
+    row = normalize_listing(record, mep, usd_m2_min=400, usd_m2_max=8000, price_usd_min=5000)
+    assert row["es_outlier"] is False
+    assert row["outlier_reason"] is None
+
+
 def test_expensas_stored_as_ars_not_converted(mep, extracted_factory):
     record = extracted_factory(expensas_ars=60_000.0)
     row = normalize_listing(record, mep, usd_m2_min=400, usd_m2_max=8000)

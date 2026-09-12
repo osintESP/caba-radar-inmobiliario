@@ -10,7 +10,10 @@ que viven acá) y les aplica:
 3. Precio a consultar: NULL, excluido del modelo, conservado para tracking.
 4. Expensas: quedan en ARS, no se convierten. Entran al modelo.
 5. Pozo vs usado: categorías separadas.
-6. Outliers: se flaggean (no se descartan) fuera de 400-8000 USD/m2.
+6. Outliers: se flaggean (no se descartan) fuera de 400-8000 USD/m2, o con
+   price_usd por debajo de un piso absoluto — este segundo chequeo es el
+   único que alcanza a Zonaprop, que nunca tiene usd_m2 (ver
+   zonaprop_scraper.py).
 """
 
 from __future__ import annotations
@@ -47,6 +50,7 @@ def normalize_listing(
     usd_m2_min: float,
     usd_m2_max: float,
     captured_at: Optional[str] = None,
+    price_usd_min: float = 5000,
 ) -> NormalizedRow:
     captured_at = captured_at or dt.datetime.now(dt.timezone.utc).isoformat()
 
@@ -63,6 +67,9 @@ def normalize_listing(
     if usd_m2 is not None and not (usd_m2_min <= usd_m2 <= usd_m2_max):
         es_outlier = True
         outlier_reason = f"usd_m2={usd_m2:.0f} fuera de [{usd_m2_min:.0f}, {usd_m2_max:.0f}]"
+    elif price_usd is not None and price_usd < price_usd_min:
+        es_outlier = True
+        outlier_reason = f"price_usd={price_usd:.0f} por debajo del piso {price_usd_min:.0f}"
 
     return {
         "portal": record.get("portal"),
@@ -109,8 +116,9 @@ def normalize_batch(
     usd_m2_min: float,
     usd_m2_max: float,
     captured_at: Optional[str] = None,
+    price_usd_min: float = 5000,
 ) -> list[NormalizedRow]:
-    return [normalize_listing(r, mep, usd_m2_min, usd_m2_max, captured_at) for r in records]
+    return [normalize_listing(r, mep, usd_m2_min, usd_m2_max, captured_at, price_usd_min) for r in records]
 
 
 def check_parse_rate(rows: list[NormalizedRow], field: str = "price_usd", min_rate: float = 0.9) -> float:

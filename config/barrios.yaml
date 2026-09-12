@@ -69,6 +69,13 @@ adyacentes:
 outliers:
   usd_m2_min: 400
   usd_m2_max: 8000
+  # Piso absoluto de precio, independiente de usd_m2 — hace falta porque
+  # el chequeo de usd_m2 nunca corre sobre Zonaprop (no expone m2_cubiertos
+  # en el listado, ver zonaprop_scraper.py) y un precio absurdo ahí
+  # pasaba sin ninguna alerta. Ningún departamento/PH/casa real en CABA
+  # baja de esto — un valor menor es casi siempre un bug de parseo
+  # (moneda mal detectada, número truncado).
+  price_usd_min: 5000
 
 scraping:
   # La página de listado (barata: 1 request cada 48 avisos) se recorre
