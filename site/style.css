@@ -548,6 +548,14 @@ a:hover {
   font-style: italic;
 }
 
+.modal__note {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.4rem;
+  background: var(--panel-alt, rgba(127, 127, 127, 0.12));
+  font-size: 0.9rem;
+}
+
 /* ---- Carga de cierre ---- */
 
 .cierre-grid {

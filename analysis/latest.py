@@ -37,6 +37,7 @@ DISPLAY_COLUMNS = [
     "n_comparables_zona",
     "veredicto_zona",
     "brecha_neta_usd",
+    "pct_negociacion_estimado",
     "expensas_ars",
     "antiguedad",
     "piso",

@@ -19,6 +19,7 @@ const fmtSigned = (n) => {
   return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("es-AR")}`;
 };
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString("es-AR") : "s/d");
+const fmtPct = (n) => (n === null || n === undefined ? "s/d" : `${Math.round(n * 100)}%`);
 
 let currentData = [];
 // Brecha neta ("cuánto tengo que poner") es la métrica que el plan pide
@@ -160,10 +161,22 @@ async function openFicha(clave) {
   const title = document.getElementById("ficha-title");
   const canvas = document.getElementById("ficha-canvas");
   const empty = document.getElementById("ficha-empty");
+  const descuento = document.getElementById("ficha-descuento");
   const r = rowsByClave[clave];
 
   title.textContent = r ? r.titulo || `${r.barrio} · ${r.tipo} · ${r.ambientes ?? "s/d"} amb.` : "Ficha de propiedad";
   modal.hidden = false;
+
+  if (r && r.pct_negociacion_estimado !== null && r.pct_negociacion_estimado !== undefined) {
+    const ubicacion =
+      r.veredicto_zona === "ok" && r.percentil_zona !== null
+        ? `está en el percentil ${Math.round(r.percentil_zona)} de sus ${r.n_comparables_zona} comparables de zona`
+        : "todavía no tiene comparables suficientes en su zona";
+    descuento.textContent = `Descuento a pedir en la negociación: ${fmtPct(r.pct_negociacion_estimado)} — ${ubicacion}.`;
+    descuento.hidden = false;
+  } else {
+    descuento.hidden = true;
+  }
 
   if (fichaChart) {
     fichaChart.destroy();
@@ -279,7 +292,7 @@ function render() {
   tbody.innerHTML = "";
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="19">Ningún aviso coincide con el filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="20">Ningún aviso coincide con el filtro.</td></tr>';
     return;
   }
 
@@ -307,6 +320,7 @@ function render() {
           ? `${Math.round(r.percentil_zona)}${esBuenPrecio ? ' <span class="badge-good">Buen precio</span>' : ""}${esPrecioAlto ? ' <span class="badge-high">Precio alto</span>' : ""}`
           : "s/d"
       }</td>
+      <td>${fmtPct(r.pct_negociacion_estimado)}</td>
       <td>${fmtNum(r.m2_cubiertos)}</td>
       <td>${r.ambientes ?? "s/d"}</td>
       <td>${r.condicion ?? "s/d"}</td>

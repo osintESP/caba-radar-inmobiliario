@@ -7,7 +7,15 @@ costos:
   escritura_pct: 0.02
   gastos_fijos_usd: 1500
   impuesto_transferencia_pct: 0.0 # DEPENDE DEL CASO — ver PLAN-radar-inmobiliario.md sección 2
-  brecha_negociacion_pct: 0.06     # estimación única global (MVP) — el blend por fuente de la sección 3.3 es trabajo de F7, con ≥90 días de datos
+  # Descuento a pedir en la negociación, según el percentil_zona de la
+  # candidata (F4, analysis/valuation.py): por encima de la mediana de sus
+  # comparables hay más margen para pedir descuento; por debajo, menos.
+  # Primer paso hacia el "ajuste por aviso" de la sección 3.3 — el blend
+  # completo (+ días en mercado, recortes previos) es trabajo de F7, con
+  # ≥90 días de datos propios.
+  brecha_negociacion_pct_alto: 0.09    # percentil_zona > 50
+  brecha_negociacion_pct_bajo: 0.05    # percentil_zona <= 50
+  brecha_negociacion_pct_default: 0.06 # percentil desconocido (< 30 comparables) — piso conservador, el valor global anterior
 
 fx:
   # Campo de la cotización "bolsa" (MEP) de dolarapi.com que se usa para convertir

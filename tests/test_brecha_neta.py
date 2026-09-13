@@ -1,4 +1,4 @@
-from analysis.brecha_neta import brecha_neta, costo_compra, neto_venta
+from analysis.brecha_neta import brecha_neta, costo_compra, neto_venta, pct_negociacion_estimado
 
 COSTOS = {
     "comision_venta_pct": 0.03,
@@ -9,7 +9,9 @@ COSTOS = {
     "escritura_pct": 0.02,
     "gastos_fijos_usd": 1500,
     "impuesto_transferencia_pct": 0.0,
-    "brecha_negociacion_pct": 0.06,
+    "brecha_negociacion_pct_alto": 0.09,
+    "brecha_negociacion_pct_bajo": 0.05,
+    "brecha_negociacion_pct_default": 0.06,
 }
 
 
@@ -28,8 +30,30 @@ def test_neto_venta_resta_impuesto_transferencia_si_aplica():
 
 
 def test_costo_compra_aplica_la_brecha_de_negociacion_antes_de_los_costos():
-    resultado = costo_compra(150000, COSTOS)
+    resultado = costo_compra(150000, COSTOS)  # sin percentil -> franja default (6%)
     negociado = 150000 * 0.94
+    sellos = negociado * 0.027 * 0.5
+    escritura = negociado * 0.02
+    comision_con_iva = negociado * 0.03 * 1.21
+    assert resultado == negociado + sellos + escritura + comision_con_iva + 1500
+
+
+def test_pct_negociacion_estimado_usa_franja_alta_por_encima_de_la_mediana():
+    assert pct_negociacion_estimado(75, COSTOS) == 0.09
+
+
+def test_pct_negociacion_estimado_usa_franja_baja_en_o_por_debajo_de_la_mediana():
+    assert pct_negociacion_estimado(50, COSTOS) == 0.05
+    assert pct_negociacion_estimado(10, COSTOS) == 0.05
+
+
+def test_pct_negociacion_estimado_usa_default_sin_percentil():
+    assert pct_negociacion_estimado(None, COSTOS) == 0.06
+
+
+def test_costo_compra_usa_la_franja_alta_cuando_la_candidata_esta_cara_en_su_zona():
+    resultado = costo_compra(150000, COSTOS, percentil_zona=80)
+    negociado = 150000 * 0.91
     sellos = negociado * 0.027 * 0.5
     escritura = negociado * 0.02
     comision_con_iva = negociado * 0.03 * 1.21

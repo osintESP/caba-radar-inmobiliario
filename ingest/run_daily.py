@@ -32,10 +32,11 @@ import datetime as dt
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
-from analysis.brecha_neta import brecha_neta
+from analysis.brecha_neta import brecha_neta, pct_negociacion_estimado
 from analysis.db import rebuild_from_snapshots
 from analysis.history import build_market_trends, build_price_history
 from analysis.latest import build_latest_json, deduplicated_view
@@ -113,9 +114,20 @@ def main() -> int:
     costos = load_yaml(CONFIG_DIR / "costos.yaml")["costos"]
     mi_propiedad_cfg = load_yaml(CONFIG_DIR / "mi_propiedad.yaml")["mi_propiedad"]
     precio_venta_mio = mi_propiedad_cfg["precio_venta_max_usd"]
-    df["brecha_neta_usd"] = df["price_usd"].map(
-        lambda precio_lista: brecha_neta(precio_lista, precio_venta_mio, costos) if pd.notna(precio_lista) else None
-    )
+    def _fila_brecha_neta(row: pd.Series) -> Optional[float]:
+        if pd.isna(row["price_usd"]):
+            return None
+        percentil = row["percentil_zona"] if pd.notna(row["percentil_zona"]) else None
+        return brecha_neta(row["price_usd"], precio_venta_mio, costos, percentil)
+
+    def _fila_pct_negociacion(row: pd.Series) -> Optional[float]:
+        if pd.isna(row["price_usd"]):
+            return None
+        percentil = row["percentil_zona"] if pd.notna(row["percentil_zona"]) else None
+        return pct_negociacion_estimado(percentil, costos)
+
+    df["brecha_neta_usd"] = df.apply(_fila_brecha_neta, axis=1)
+    df["pct_negociacion_estimado"] = df.apply(_fila_pct_negociacion, axis=1)
 
     latest = build_latest_json(df)
     latest["mi_propiedad"] = _audit_mi_propiedad(comparables_pool, adyacentes, mi_propiedad_cfg)

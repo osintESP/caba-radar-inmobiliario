@@ -95,10 +95,11 @@
               <th data-key="barrio" data-type="string">Barrio</th>
               <th data-key="tipo" data-type="string">Tipo</th>
               <th data-key="price_usd" data-type="number">Precio USD</th>
-              <th data-key="brecha_neta_usd" data-type="number" title="Cuánto hay que poner de más (o cuánto sobra, si es negativo) para pasarse de tu propiedad a esta candidata, neto de comisiones/sellos/escritura (config/costos.yaml). Brecha de negociación estimada única por ahora, no por barrio — ver PLAN sección 3.3">Brecha neta</th>
+              <th data-key="brecha_neta_usd" data-type="number" title="Cuánto hay que poner de más (o cuánto sobra, si es negativo) para pasarse de tu propiedad a esta candidata, neto de comisiones/sellos/escritura (config/costos.yaml), usando el descuento a pedir estimado de la columna 'Descuento a pedir'">Brecha neta</th>
               <th data-key="usd_m2" data-type="number">USD/m²</th>
               <th data-key="usd_m2_mediana_zona" data-type="number" title="Mediana de USD/m² entre comparables reales de su barrio/tipo/ambientes/m² (F4). Solo MELI: Zonaprop no expone m² cubierto en el listado.">Mediana zona</th>
               <th data-key="percentil_zona" data-type="number" title="Dónde cae su USD/m² entre esos comparables: 0 = el más barato, 100 = el más caro. Solo MELI: Zonaprop no expone m² cubierto en el listado.">Percentil</th>
+              <th data-key="pct_negociacion_estimado" data-type="number" title="Descuento a pedir en la negociación (config/costos.yaml): franja alta si el percentil de zona supera 50 (está cara contra sus comparables), franja baja si no, piso conservador sin comparables suficientes. Heurística MVP, no el blend completo de la sección 3.3 del plan.">Desc. a pedir</th>
               <th data-key="m2_cubiertos" data-type="number">m² cub.</th>
               <th data-key="ambientes" data-type="number">Amb.</th>
               <th data-key="condicion" data-type="string">Condición</th>
@@ -113,7 +114,7 @@
             </tr>
           </thead>
           <tbody id="listings-body">
-            <tr><td colspan="19">Sin datos todavía.</td></tr>
+            <tr><td colspan="20">Sin datos todavía.</td></tr>
           </tbody>
         </table>
       </div>
@@ -136,6 +137,7 @@
     <div class="modal__panel">
       <button type="button" class="modal__close" data-close="ficha" aria-label="Cerrar">×</button>
       <h3 id="ficha-title">Ficha de propiedad</h3>
+      <p id="ficha-descuento" class="modal__note" hidden></p>
       <p id="ficha-empty" class="modal__empty" hidden>Todavía no hay suficiente historial de precios para este aviso (necesita aparecer en al menos 2 snapshots).</p>
       <canvas id="ficha-canvas" height="220"></canvas>
     </div>
