@@ -106,6 +106,11 @@ def normalize_listing(
         "imagen_url": record.get("imagen_url"),
         "es_outlier": es_outlier,
         "outlier_reason": outlier_reason,
+        # Zona fuera del universo de candidatas (config/barrios.yaml:
+        # externas) — alimenta comparables para auditar una propiedad
+        # puntual de otro perfil, nunca se muestra en la tabla de candidatas
+        # (ver analysis/latest.py::deduplicated_view/build_latest_json).
+        "zona_externa": bool(record.get("zona_externa", False)),
         "raw_json": record.get("raw_json"),
     }
 

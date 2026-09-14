@@ -232,10 +232,18 @@ def search_barrio_tipo(
     barrio_slug: str,
     tipo: str,
     max_pages: Optional[int] = None,
+    region: str = "capital-federal",
 ) -> Iterator[dict[str, Any]]:
-    """Itera los avisos de un barrio x tipología, paginando de a 48."""
+    """Itera los avisos de un barrio x tipología, paginando de a 48.
+
+    `region` es el segmento de URL de MELI entre "venta" y el slug del
+    barrio/partido — "capital-federal" para todo barrio de CABA (default,
+    el uso de siempre), pero un partido de provincia usa otra región propia
+    (confirmado en vivo para Merlo: "bsas-gba-oeste", no "capital-federal" —
+    ver config/barrios.yaml: externas). Pasar la región incorrecta no tira
+    error: MELI redirige a una página de fallback sin avisos reales."""
     tipo_plural = TIPO_PLURAL[tipo]
-    base = f"{BASE_URL}/{tipo_plural}/venta/capital-federal/{barrio_slug}/"
+    base = f"{BASE_URL}/{tipo_plural}/venta/{region}/{barrio_slug}/"
 
     resp = _get(client, base)
     html = resp.text

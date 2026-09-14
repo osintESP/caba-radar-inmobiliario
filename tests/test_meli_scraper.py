@@ -36,6 +36,36 @@ def test_total_results_parses_total_field():
     assert ms.total_results(SEARCH_PAGE_HTML) == 2
 
 
+def test_search_barrio_tipo_defaults_to_capital_federal(monkeypatch):
+    urls_pedidas = []
+
+    def fake_get(client, url):
+        import httpx
+
+        urls_pedidas.append(url)
+        return httpx.Response(200, text=SEARCH_PAGE_HTML, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(ms, "_get", fake_get)
+    client = ms.make_client()
+    list(ms.search_barrio_tipo(client, "Monte Castro", "monte-castro", "departamento"))
+    assert urls_pedidas[0] == f"{ms.BASE_URL}/departamentos/venta/capital-federal/monte-castro/"
+
+
+def test_search_barrio_tipo_usa_la_region_pasada(monkeypatch):
+    urls_pedidas = []
+
+    def fake_get(client, url):
+        import httpx
+
+        urls_pedidas.append(url)
+        return httpx.Response(200, text=SEARCH_PAGE_HTML, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(ms, "_get", fake_get)
+    client = ms.make_client()
+    list(ms.search_barrio_tipo(client, "Merlo", "merlo", "casa", region="bsas-gba-oeste"))
+    assert urls_pedidas[0] == f"{ms.BASE_URL}/casas/venta/bsas-gba-oeste/merlo/"
+
+
 def test_parse_search_results_ignores_malformed_ld_json():
     html = '<script type="application/ld+json">{not valid json</script>'
     assert ms.parse_search_results(html, "departamento", "Monte Castro") == []

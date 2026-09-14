@@ -96,6 +96,30 @@ def test_duplicate_group_shows_only_cheapest_with_count():
     assert avisos_por_precio[99000.0]["n_duplicados"] == 1
 
 
+def test_zona_externa_no_aparece_en_la_tabla_de_candidatas():
+    """Una fila de zona_externa (config/barrios.yaml: externas, ej. Merlo)
+    alimenta comparables para auditar la propiedad de otro perfil, nunca es
+    candidata de compra — build_latest_json no debe mostrarla."""
+    df = pd.DataFrame(
+        [
+            _row(portal_id="MLA1", zona_externa=False),
+            _row(portal_id="MLA2", barrio="Merlo", tipo="casa", zona_externa=True),
+        ]
+    )
+    latest = build_latest_json(df)
+    assert latest["n_avisos"] == 1
+    assert {a["portal_id"] for a in latest["avisos"]} == {"MLA1"}
+    assert latest["n_avisos_total"] == 2  # sigue en el DataFrame completo, solo no en la vista
+
+
+def test_ausencia_de_columna_zona_externa_no_rompe_snapshots_viejos():
+    """Un snapshot de antes de que existiera esta columna (`_row()` sin
+    zona_externa) debe seguir mostrando sus avisos con normalidad."""
+    df = pd.DataFrame([_row(portal_id="MLA1")])
+    latest = build_latest_json(df)
+    assert latest["n_avisos"] == 1
+
+
 def test_percentil_zona_pasa_a_traves_para_cada_candidata():
     """F4 extendido (analysis/valuation.py::audit_candidates): el sitio
     debe mostrar el percentil/mediana de zona de cada aviso, no solo de

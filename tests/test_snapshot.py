@@ -7,6 +7,7 @@ from ingest.snapshot import (
     _scrape_browser_portal,
     all_barrios,
     apply_alcance_filter,
+    externas_zonas,
     load_known_descriptions,
     load_known_portal_ids,
 )
@@ -54,6 +55,32 @@ def test_apply_alcance_filter_descarta_pocos_ambientes_y_sin_dato():
     ]
     resultado = apply_alcance_filter(rows, ambientes_min=3)
     assert {r["portal_id"] for r in resultado} == {"A", "D"}
+
+
+def test_apply_alcance_filter_exime_zona_externa():
+    """Una fila de zona_externa (config/barrios.yaml: externas) alimenta
+    comparables, no candidatas — no se descarta aunque no informe ambientes
+    o esté por debajo del piso (ver docstring de apply_alcance_filter)."""
+    rows = [
+        {"portal_id": "A", "ambientes": None, "zona_externa": True},
+        {"portal_id": "B", "ambientes": 1, "zona_externa": True},
+        {"portal_id": "C", "ambientes": None, "zona_externa": False},
+    ]
+    resultado = apply_alcance_filter(rows, ambientes_min=3)
+    assert {r["portal_id"] for r in resultado} == {"A", "B"}
+
+
+def test_externas_zonas_devuelve_lo_configurado():
+    barrios_cfg = {
+        "externas": [
+            {"nombre": "Merlo", "meli_slug": "merlo", "meli_region": "bsas-gba-oeste", "tipologias": ["casa"]}
+        ]
+    }
+    assert externas_zonas(barrios_cfg) == barrios_cfg["externas"]
+
+
+def test_externas_zonas_vacio_por_defecto():
+    assert externas_zonas({}) == []
 
 
 def test_load_known_portal_ids_reads_all_prior_snapshots(tmp_path):

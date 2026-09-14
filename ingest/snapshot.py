@@ -74,7 +74,12 @@ def load_yaml(path: Path) -> dict[str, Any]:
 def all_barrios(barrios_cfg: dict[str, Any]) -> list[tuple[str, str]]:
     """Devuelve [(nombre, meli_slug), ...] para nucleo + propia (+ anillo,
     salvo que `alcance.anillo_activo` lo desactive — ver config/barrios.yaml,
-    alcance reducido a pedido del usuario para iterar más fácil)."""
+    alcance reducido a pedido del usuario para iterar más fácil).
+
+    Universo de CANDIDATAS (lo que se muestra en la tabla del sitio) — no
+    incluye `externas` (ver `externas_zonas()`), que son barrios fuera de
+    CABA que solo alimentan comparables para auditar la propiedad puntual
+    de otro perfil, nunca candidatas de compra."""
     incluir_anillo = barrios_cfg.get("alcance", {}).get("anillo_activo", True)
     roles = ("nucleo", "propia", "anillo") if incluir_anillo else ("nucleo", "propia")
     out: list[tuple[str, str]] = []
@@ -82,6 +87,16 @@ def all_barrios(barrios_cfg: dict[str, Any]) -> list[tuple[str, str]]:
         for entry in barrios_cfg.get(rol, []):
             out.append((entry["nombre"], entry["meli_slug"]))
     return out
+
+
+def externas_zonas(barrios_cfg: dict[str, Any]) -> list[dict[str, Any]]:
+    """Zonas de `config/barrios.yaml: externas` — fuera del universo de
+    candidatas, cada una con su propia `meli_region` (a diferencia de
+    `all_barrios()`, que asume "capital-federal") y su propia lista de
+    `tipologias` a scrapear (no necesariamente las mismas que CABA: no tiene
+    sentido pagar el costo de traer departamentos de una zona en la que
+    nadie va a buscar candidatas)."""
+    return barrios_cfg.get("externas", [])
 
 
 def load_known_attributes(snapshots_dir: Path) -> dict[str, dict[str, Any]]:
@@ -127,12 +142,20 @@ def apply_alcance_filter(rows: list[dict[str, Any]], ambientes_min: Optional[int
     """Alcance reducido (config/barrios.yaml: alcance.ambientes_min) — a
     diferencia de outliers (se flaggean, no se descartan, ver
     ingest/normalize.py), esto SÍ descarta filas: es una decisión explícita
-    de encoger el universo para iterar más fácil, no una señal de calidad
-    del dato. Un aviso sin ambientes informado no puede confirmarse >= al
-    mínimo, así que también se descarta. `ambientes_min=None` es no-op."""
+    de encoger el universo de CANDIDATAS para iterar más fácil, no una señal
+    de calidad del dato. Un aviso sin ambientes informado no puede
+    confirmarse >= al mínimo, así que también se descarta. `ambientes_min=None`
+    es no-op. Las filas de `zona_externa` (config/barrios.yaml: externas)
+    quedan exentas: alimentan comparables para auditar una propiedad puntual,
+    no candidatas — no tiene sentido descartar una casa comparable de Merlo
+    solo porque no informó "ambientes"."""
     if ambientes_min is None:
         return rows
-    return [r for r in rows if r.get("ambientes") is not None and r["ambientes"] >= ambientes_min]
+    return [
+        r
+        for r in rows
+        if r.get("zona_externa") or (r.get("ambientes") is not None and r["ambientes"] >= ambientes_min)
+    ]
 
 
 def load_known_portal_ids(snapshots_dir: Path) -> set[str]:
@@ -253,10 +276,22 @@ def run_snapshot(
         max_new_fetches = barrios_cfg.get("scraping", {}).get("max_new_detail_fetches_por_corrida", 250)
 
         combos = [
-            (barrio_nombre, barrio_slug, tipo)
+            (barrio_nombre, barrio_slug, tipo, "capital-federal")
             for barrio_nombre, barrio_slug in all_barrios(barrios_cfg)
             for tipo in barrios_cfg["tipologias"]
         ]
+        # `externas` (config/barrios.yaml): zonas fuera de CABA, cada una con
+        # su propia meli_region y su propia lista de tipologias — se agregan
+        # al mismo reparto de cupo que el resto (ver comentario de abajo) en
+        # vez de tener presupuesto separado, porque el volumen que aportan es
+        # chico (una zona, una tipología) y no vale la pena la complejidad de
+        # un segundo cupo.
+        externas_nombres: set[str] = set()
+        for zona in externas_zonas(barrios_cfg):
+            externas_nombres.add(zona["nombre"])
+            for tipo in zona.get("tipologias", barrios_cfg["tipologias"]):
+                combos.append((zona["nombre"], zona["meli_slug"], tipo, zona["meli_region"]))
+
         # Cupo PAREJO por combinación barrio x tipología. Sin esto, un barrio
         # de alto volumen (ej. Flores) agota el cupo global entero y deja a
         # los demás —incluida "propia", donde está la propiedad a vender— en
@@ -271,10 +306,13 @@ def run_snapshot(
         client = meli_scraper.make_client()
         pending_new: list[dict[str, Any]] = []  # avisos nuevos que no llegaron a enriquecerse en el primer paso
         try:
-            for barrio_nombre, barrio_slug, tipo in combos:
+            for barrio_nombre, barrio_slug, tipo, region in combos:
                 combo_new_fetches = 0
-                for summary in meli_scraper.search_barrio_tipo(client, barrio_nombre, barrio_slug, tipo):
+                for summary in meli_scraper.search_barrio_tipo(
+                    client, barrio_nombre, barrio_slug, tipo, region=region
+                ):
                     record = dict(summary)
+                    record["zona_externa"] = barrio_nombre in externas_nombres
                     portal_id = record["portal_id"]
 
                     if portal_id in known:

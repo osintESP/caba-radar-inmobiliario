@@ -613,3 +613,140 @@ a:hover {
   font-size: 0.85rem;
   font-weight: 700;
 }
+
+/* ---- Vista simplificada (site/papa.html) ----
+   Texto más grande, tarjetas en vez de tabla densa: pensada para leerse
+   cómodo en un celular sin tener que hacer zoom ni scrollear horizontal. */
+
+.papa-body {
+  font-size: 1.1rem;
+}
+
+.papa-page {
+  max-width: 780px;
+}
+
+.papa-card {
+  font-size: 1rem;
+}
+
+.papa-banner {
+  font-size: 0.95rem;
+}
+
+.papa-faltan-datos {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.papa-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.papa-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+  flex: 1 1 180px;
+}
+
+.papa-control select {
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 500;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.papa-control select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.papa-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.papa-listing {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+}
+
+.papa-listing__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.papa-listing__lugar {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.papa-listing__precio {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.papa-listing__datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.papa-listing__brecha {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0.5rem 0 1rem;
+}
+
+.papa-listing__brecha--sobra {
+  color: var(--good);
+}
+
+.papa-listing__link {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-decoration: none;
+}
+
+.papa-listing__link:hover {
+  background: var(--accent-dark);
+}
+
+.papa-empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 1.05rem;
+  padding: 2rem 0;
+}

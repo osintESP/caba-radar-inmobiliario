@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pyarrow
 import pandas as pd
 
 _SNAPSHOT_COLUMNS = ["portal", "portal_id", "barrio", "usd_m2", "price_usd", "es_outlier"]
@@ -26,11 +27,18 @@ _SNAPSHOT_COLUMNS = ["portal", "portal_id", "barrio", "usd_m2", "price_usd", "es
 def _load_all_snapshots(snapshots_dir: Path) -> pd.DataFrame:
     frames = []
     for path in sorted(snapshots_dir.glob("*.parquet")):
-        snapshot = pd.read_parquet(path, columns=_SNAPSHOT_COLUMNS)
+        try:
+            snapshot = pd.read_parquet(path, columns=[*_SNAPSHOT_COLUMNS, "zona_externa"])
+        except pyarrow.ArrowInvalid:
+            # Snapshot de antes de que existiera "zona_externa" (2026-09-14,
+            # ver ingest/snapshot.py: externas) — ninguna fila era de zona
+            # externa todavía, así que se asume False para todas.
+            snapshot = pd.read_parquet(path, columns=_SNAPSHOT_COLUMNS)
+            snapshot["zona_externa"] = False
         snapshot["fecha"] = path.stem
         frames.append(snapshot)
     if not frames:
-        return pd.DataFrame(columns=[*_SNAPSHOT_COLUMNS, "fecha"])
+        return pd.DataFrame(columns=[*_SNAPSHOT_COLUMNS, "zona_externa", "fecha"])
     return pd.concat(frames, ignore_index=True)
 
 
@@ -52,7 +60,14 @@ def build_price_history(snapshots_dir: Path) -> dict[str, list[dict]]:
 def build_market_trends(snapshots_dir: Path) -> dict[str, list[dict]]:
     """`{"Barrio": [{"fecha": ..., "mediana_usd_m2": ..., "n_avisos": ...}, ...]}`."""
     all_snapshots = _load_all_snapshots(snapshots_dir)
-    validos = all_snapshots[(~all_snapshots["es_outlier"].fillna(False)) & all_snapshots["usd_m2"].notna()]
+    validos = all_snapshots[
+        (~all_snapshots["es_outlier"].fillna(False))
+        & all_snapshots["usd_m2"].notna()
+        # zona_externa (ej. Merlo, ver ingest/snapshot.py): alimenta
+        # comparables de otro perfil, no pertenece a la Vista de Mercado de
+        # este — sin este filtro aparecería como un barrio más en el gráfico.
+        & (~all_snapshots["zona_externa"].fillna(False))
+    ]
     if validos.empty:
         return {}
 

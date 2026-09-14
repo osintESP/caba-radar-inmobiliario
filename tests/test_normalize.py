@@ -26,6 +26,18 @@ def test_missing_m2_cubiertos_stays_null_not_imputed(mep, extracted_factory):
     assert row["usd_m2"] is None  # no se puede derivar sin superficie, y no se imputa
 
 
+def test_zona_externa_defaults_false(mep, extracted_factory):
+    record = extracted_factory()
+    row = normalize_listing(record, mep, usd_m2_min=400, usd_m2_max=8000)
+    assert row["zona_externa"] is False
+
+
+def test_zona_externa_passthrough_when_true(mep, extracted_factory):
+    record = extracted_factory(zona_externa=True)
+    row = normalize_listing(record, mep, usd_m2_min=400, usd_m2_max=8000)
+    assert row["zona_externa"] is True
+
+
 def test_precio_a_consultar_excluded_from_price_but_row_kept(mep, extracted_factory):
     record = extracted_factory(price_amount=None, price_currency=None)
     row = normalize_listing(record, mep, usd_m2_min=400, usd_m2_max=8000)

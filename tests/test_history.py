@@ -7,8 +7,10 @@ def _snapshot(rows):
     return pd.DataFrame(rows)
 
 
-def _row(portal_id, barrio="Monte Castro", price_usd=130000.0, usd_m2=1800.0, es_outlier=False, portal="meli"):
-    return {
+def _row(
+    portal_id, barrio="Monte Castro", price_usd=130000.0, usd_m2=1800.0, es_outlier=False, portal="meli", **overrides
+):
+    row = {
         "portal": portal,
         "portal_id": portal_id,
         "barrio": barrio,
@@ -16,6 +18,8 @@ def _row(portal_id, barrio="Monte Castro", price_usd=130000.0, usd_m2=1800.0, es
         "price_usd": price_usd,
         "es_outlier": es_outlier,
     }
+    row.update(overrides)
+    return row
 
 
 def test_build_price_history_empty_dir_returns_empty_dict(tmp_path):
@@ -68,6 +72,20 @@ def test_build_market_trends_computes_median_and_count_per_barrio(tmp_path):
 
     assert tendencias["Monte Castro"] == [{"fecha": "2026-01-01", "mediana_usd_m2": 2000.0, "n_avisos": 2}]
     assert tendencias["Floresta"] == [{"fecha": "2026-01-01", "mediana_usd_m2": 1500.0, "n_avisos": 1}]
+
+
+def test_build_market_trends_excludes_zona_externa(tmp_path):
+    """Merlo (config/barrios.yaml: externas) alimenta comparables para otro
+    perfil, no debe aparecer como barrio en la Vista de Mercado de este."""
+    _snapshot(
+        [
+            _row("A", barrio="Monte Castro", usd_m2=1800.0, zona_externa=False),
+            _row("B", barrio="Merlo", usd_m2=900.0, zona_externa=True),
+        ]
+    ).to_parquet(tmp_path / "2026-01-01.parquet", index=False)
+
+    tendencias = build_market_trends(tmp_path)
+    assert set(tendencias.keys()) == {"Monte Castro"}
 
 
 def test_build_market_trends_excludes_outliers_and_missing_usd_m2(tmp_path):

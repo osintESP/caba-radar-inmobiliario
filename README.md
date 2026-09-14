@@ -78,6 +78,44 @@ Argenprop):
 gh workflow run test-f2-browsers.yml
 ```
 
+## Segundo perfil: otro comprador buscando en la misma zona
+
+Desde 2026-09-14 el sitio soporta más de un "perfil" comprador sobre el
+mismo universo de candidatas. El primero (`config/mi_propiedad.yaml`) vende
+un departamento en Monte Castro y busca 3+ ambientes; el segundo
+(`config/mi_propiedad_papa.yaml`) vende una casa en Merlo (Buenos Aires) y
+busca 2 ambientes en los mismos barrios (Vélez Sarsfield/Floresta/Monte
+Castro/anillo). Vista simplificada en `site/papa.html`: menos columnas,
+texto más grande, tarjetas en vez de tabla — pensada para navegarse fácil
+desde el celular.
+
+Piezas nuevas:
+
+- `config/barrios.yaml: externas` — zonas fuera de CABA (hoy solo Merlo)
+  que se scrapean únicamente para auditar la propiedad puntual de un
+  perfil contra sus propios comparables, nunca aparecen como candidatas
+  de compra (`ingest/snapshot.py` las marca con `zona_externa: true`,
+  `analysis/latest.py` las excluye de la tabla y de la Vista de Mercado).
+  Confirmado en vivo: Mercado Libre resuelve Merlo con la región
+  `bsas-gba-oeste`, no `capital-federal` como el resto — por eso
+  `meli_region` es un campo obligatorio ahí. Solo Mercado Libre por ahora;
+  Zonaprop/Argenprop quedan para cuando haga falta más volumen de
+  comparables.
+- `config/barrios.yaml: alcance.ambientes_min` bajó de 3 a 2 — antes
+  descartaba TODO aviso de 1-2 ambientes a nivel scraping, antes de llegar
+  a ningún perfil. Cada perfil sigue filtrando a los ambientes que le
+  interesan en su propia vista.
+- `analysis/brecha_neta.py::brecha_neta()` ahora toma `percentil_zona`
+  además del precio — cada candidata tiene una columna de brecha neta por
+  perfil (`brecha_neta_usd`, `brecha_neta_papa_usd`), calculada contra el
+  precio de venta de CADA perfil, pero comparten `pct_negociacion_estimado`
+  (solo depende de la candidata, no de quién compra).
+
+**Pendiente para que la auditoría de la casa de Merlo funcione de verdad:**
+`config/mi_propiedad_papa.yaml` tiene `m2_cubiertos: null` — sin superficie
+no hay con qué comparar (F4 la exige, nunca se imputa). Hasta completarlo,
+el sitio muestra "faltan datos" en vez de un número inventado.
+
 ## Desarrollo local
 
 ```bash

@@ -53,6 +53,27 @@ MARKET_TRENDS_JSON_PATH = DATA_DIR / "market_trends.json"
 
 
 def _audit_mi_propiedad(comparables_pool, adyacentes: dict, mi_propiedad: dict) -> dict:
+    if mi_propiedad.get("m2_cubiertos") is None:
+        # Sin superficie no hay con qué comparar (audit_property() la exige,
+        # sección 8 del plan: nunca imputar) — pasa ej. config/mi_propiedad_papa.yaml
+        # hasta que se complete el dato real. El sitio muestra "faltan datos"
+        # en vez de que esto rompa toda la corrida diaria.
+        return {
+            "barrio": mi_propiedad["barrio"],
+            "tipo": mi_propiedad["tipo"],
+            "ambientes": mi_propiedad.get("ambientes"),
+            "m2_cubiertos": None,
+            "precio_venta_max_usd": mi_propiedad["precio_venta_max_usd"],
+            "usd_m2_declarado": None,
+            "n_comparables": 0,
+            "scope": "sin_datos",
+            "usd_m2_mediana": None,
+            "usd_m2_p25": None,
+            "usd_m2_p75": None,
+            "percentil_sujeto": None,
+            "veredicto": "sin_datos",
+        }
+
     usd_m2_declarado = mi_propiedad["precio_venta_max_usd"] / mi_propiedad["m2_cubiertos"]
 
     auditoria = audit_property(
@@ -114,11 +135,20 @@ def main() -> int:
     costos = load_yaml(CONFIG_DIR / "costos.yaml")["costos"]
     mi_propiedad_cfg = load_yaml(CONFIG_DIR / "mi_propiedad.yaml")["mi_propiedad"]
     precio_venta_mio = mi_propiedad_cfg["precio_venta_max_usd"]
-    def _fila_brecha_neta(row: pd.Series) -> Optional[float]:
+
+    # Segundo perfil (config/mi_propiedad_papa.yaml, 2026-09-14): mismos
+    # barrios de búsqueda que arriba, pero vende una casa en Merlo en vez de
+    # un depto en Monte Castro — necesita su propio precio_venta_usd para
+    # brecha_neta(), aunque comparta pct_negociacion_estimado (solo depende
+    # del percentil_zona de la CANDIDATA, no de quién compra).
+    mi_propiedad_papa_cfg = load_yaml(CONFIG_DIR / "mi_propiedad_papa.yaml")["mi_propiedad"]
+    precio_venta_papa = mi_propiedad_papa_cfg["precio_venta_max_usd"]
+
+    def _fila_brecha_neta(row: pd.Series, precio_venta_usd: float) -> Optional[float]:
         if pd.isna(row["price_usd"]):
             return None
         percentil = row["percentil_zona"] if pd.notna(row["percentil_zona"]) else None
-        return brecha_neta(row["price_usd"], precio_venta_mio, costos, percentil)
+        return brecha_neta(row["price_usd"], precio_venta_usd, costos, percentil)
 
     def _fila_pct_negociacion(row: pd.Series) -> Optional[float]:
         if pd.isna(row["price_usd"]):
@@ -126,11 +156,22 @@ def main() -> int:
         percentil = row["percentil_zona"] if pd.notna(row["percentil_zona"]) else None
         return pct_negociacion_estimado(percentil, costos)
 
-    df["brecha_neta_usd"] = df.apply(_fila_brecha_neta, axis=1)
+    df["brecha_neta_usd"] = df.apply(_fila_brecha_neta, axis=1, precio_venta_usd=precio_venta_mio)
+    df["brecha_neta_papa_usd"] = df.apply(_fila_brecha_neta, axis=1, precio_venta_usd=precio_venta_papa)
     df["pct_negociacion_estimado"] = df.apply(_fila_pct_negociacion, axis=1)
 
     latest = build_latest_json(df)
     latest["mi_propiedad"] = _audit_mi_propiedad(comparables_pool, adyacentes, mi_propiedad_cfg)
+    latest["papa"] = {
+        "mi_propiedad": _audit_mi_propiedad(comparables_pool, adyacentes, mi_propiedad_papa_cfg),
+        "busqueda": mi_propiedad_papa_cfg.get("busqueda", {}),
+    }
+    # dueño/direccion no son parte de audit_property() (barrio/tipo/m2/etc.
+    # solamente) — se agregan acá para que el sitio pueda mostrarlos sin
+    # tocar el motor de valuación, que no debe saber nada de "quién" es cada
+    # perfil (regla anti-sesgo, analysis/valuation.py).
+    latest["papa"]["mi_propiedad"]["dueño"] = mi_propiedad_papa_cfg.get("dueño")
+    latest["papa"]["mi_propiedad"]["direccion"] = mi_propiedad_papa_cfg.get("direccion")
     latest["n_desaparecidos_hoy"] = int(len(new_delistings))
     latest["n_eventos_acumulados"] = int(len(all_events))
     if all_events.empty:

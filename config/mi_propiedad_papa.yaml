@@ -1,0 +1,44 @@
+# Segundo perfil (2026-09-14): tus padres, buscando 2 ambientes en la misma
+# zona que vos (config/barrios.yaml: nucleo/propia/anillo — no hace falta
+# duplicar la lista de barrios, se reusa la misma), pero vendiendo una CASA
+# en Merlo (Buenos Aires), no un departamento en Monte Castro.
+#
+# `m2_cubiertos` es obligatorio para auditar contra comparables (F4,
+# analysis/valuation.py::audit_property) — sin superficie no hay con qué
+# comparar. Queda en null hasta confirmarlo (sección 8 del plan: nunca
+# imputar); ingest/run_daily.py detecta el null y no corre la auditoría
+# (el sitio muestra "faltan datos" en vez de romper o inventar un número).
+mi_propiedad:
+  dueño: "papá"
+  barrio: "Merlo"
+  direccion: "Leandro N. Alem 3350, Parque San Martín, Merlo, Buenos Aires"
+  tipo: "casa"
+  ambientes: null           # completar
+  m2_cubiertos: null        # completar — obligatorio para poder auditar
+  m2_total: null
+  antiguedad: null          # completar
+  piso: null                # no aplica a una casa, se deja en null
+  ascensor: null             # no aplica a una casa, se deja en null
+  expensas_ars: null        # completar si paga expensas (barrio cerrado/consorcio), si no dejar en null
+  precio_venta_max_usd: 100000    # tasación provista por el usuario (2026-09-14) — confirmar si es tasación de mercado o número propio
+  precio_publicacion_usd: 100000  # ancla de negociación — ajustar si van a publicar por encima del precio de venta máximo
+  estado_venta: "sin_publicar"
+
+# A diferencia de config/mi_propiedad.yaml (escenarios fijos), acá quedan en
+# null hasta que se confirme el margen de negociación esperado en Merlo —
+# la brecha oeste-CABA de PLAN-radar-inmobiliario.md sección 3 no
+# necesariamente aplica igual en provincia de Buenos Aires.
+escenarios:
+  optimista_usd: null
+  base_usd: 100000
+  conservador_usd: null
+
+# Criterios de búsqueda de candidatas (no auditoría): mismos barrios que la
+# búsqueda principal (config/barrios.yaml: nucleo/propia/anillo), pero
+# ambientes y tipos distintos. `incluir_pozo: true` porque puede interesar
+# obra nueva, a diferencia de la búsqueda principal que filtra "usado" por
+# default en varios lugares del motor.
+busqueda:
+  ambientes_objetivo: 2
+  tipos: ["departamento", "ph"]
+  incluir_pozo: true

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar Inmobiliario — para papá y mamá</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="papa-body">
+  <div class="masthead">
+    <div class="masthead__bar">
+      <span class="masthead__logo">RADAR</span>
+      <nav class="masthead__nav">
+        <a href="index.html">Sitio completo</a>
+        <span class="masthead__live"><span class="masthead__dot"></span>EN VIVO</span>
+      </nav>
+    </div>
+  </div>
+
+  <div class="page papa-page">
+    <header class="hero">
+      <span class="hero__kicker">Búsqueda simple</span>
+      <h1>Nueva vivienda</h1>
+      <p class="subtitle">2 ambientes, misma zona: Vélez Sarsfield, Floresta, Monte Castro y alrededores.</p>
+    </header>
+
+    <section id="status-banner" class="banner papa-banner">Cargando…</section>
+
+    <section id="su-propiedad" class="card mi-propiedad papa-card" hidden>
+      <h2>Su casa en Merlo</h2>
+      <div id="su-propiedad-body"></div>
+    </section>
+
+    <section class="card papa-card papa-controls">
+      <label class="papa-control">
+        Ambientes
+        <select id="papa-filter-ambientes">
+          <option value="2">2 ambientes</option>
+          <option value="2-3">2 o 3 ambientes</option>
+        </select>
+      </label>
+      <label class="papa-control">
+        Barrio
+        <select id="papa-filter-barrio"><option value="">Todos</option></select>
+      </label>
+      <label class="papa-control">
+        Ordenar por
+        <select id="papa-sort">
+          <option value="brecha">Lo que hay que poner (recomendado)</option>
+          <option value="precio">Precio, de menor a mayor</option>
+        </select>
+      </label>
+    </section>
+
+    <section id="papa-resultados" class="papa-cards"></section>
+    <p id="papa-vacio" class="papa-empty" hidden>No hay avisos que coincidan con la búsqueda por ahora. Probá cambiando el barrio o los ambientes.</p>
+  </div>
+
+  <script src="papa.js"></script>
+</body>
+</html>

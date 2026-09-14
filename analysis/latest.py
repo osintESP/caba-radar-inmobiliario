@@ -37,6 +37,7 @@ DISPLAY_COLUMNS = [
     "n_comparables_zona",
     "veredicto_zona",
     "brecha_neta_usd",
+    "brecha_neta_papa_usd",
     "pct_negociacion_estimado",
     "expensas_ars",
     "antiguedad",
@@ -73,7 +74,15 @@ def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
 
     visible = df
     if not df.empty:
-        visible = df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()]
+        # zona_externa (config/barrios.yaml: externas, ej. Merlo): alimenta
+        # comparables para auditar la propiedad puntual de otro perfil
+        # (ver ingest/run_daily.py::_audit_mi_propiedad), nunca es candidata
+        # de compra — no pertenece a la tabla del sitio. Ausente en
+        # snapshots viejos (anteriores a esta columna): se asume False.
+        es_zona_externa = (
+            df["zona_externa"].fillna(False) if "zona_externa" in df.columns else pd.Series(False, index=df.index)
+        )
+        visible = df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna() & (~es_zona_externa)]
 
     visible = deduplicated_view(visible)
 

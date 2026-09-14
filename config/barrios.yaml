@@ -39,15 +39,46 @@ tipologias:         # separadas siempre, nunca mezcladas en un comparable
   - "ph"
   - "casa"
 
+# Zonas fuera del universo de candidatas (nucleo/propia/anillo, todas CABA):
+# se scrapean solo para auditar la propiedad de un perfil puntual contra sus
+# propios comparables (ver config/mi_propiedad_papa.yaml, analysis/valuation.py).
+# NUNCA aparecen en la tabla de candidatas del sitio (ingest/snapshot.py marca
+# cada fila con `zona_externa: true`, analysis/latest.py las excluye de
+# `visible`) — solo alimentan comparables_pool para el audit_property() de
+# ese perfil. Por eso `tipologias` es específico por zona (acá solo "casa":
+# no hace falta pagar el costo de scrapear departamentos/PH de una zona en la
+# que nadie compra) y `meli_region` es obligatorio (a diferencia de
+# nucleo/propia/anillo, que asumen "capital-federal" fijo en
+# ingest/meli_scraper.py).
+#
+# Merlo (partido de Buenos Aires, GBA Oeste): confirmado en vivo (2026-09-14)
+# que Mercado Libre NO resuelve con la región "capital-federal" de siempre —
+# hace falta "bsas-gba-oeste". Solo Mercado Libre por ahora: Zonaprop/Argenprop
+# devuelven el mismo bloqueo Cloudflare/WAF de siempre para CABA, sin
+# confirmar todavía si el slug funciona igual para un partido de provincia —
+# se agrega cuando haga falta más volumen de comparables.
+externas:
+  - nombre: "Merlo"
+    meli_slug: "merlo"
+    meli_region: "bsas-gba-oeste"
+    tipologias: ["casa"]
+
 # Alcance reducido a pedido del usuario (2026-09-09), para poder iterar y
 # detectar problemas/mejoras más fácil con un universo más chico — "luego
 # escalamos". Aplica a TODO el proyecto (scraping, dedupe, F4, sitio), no
 # solo a un portal: ver ingest/snapshot.py (all_barrios, filtro de
 # ambientes_min). Para volver a escalar: anillo_activo -> true,
 # ambientes_min -> null.
+#
+# ambientes_min bajado de 3 a 2 (2026-09-14, a pedido del usuario): habilita
+# la búsqueda de 2 ambientes de otro perfil (ver config/mi_propiedad_papa.yaml)
+# sin abrir geografía nueva. Las filas de `externas` (arriba) están exentas
+# de este filtro — ver ingest/snapshot.py::apply_alcance_filter — porque
+# alimentan comparables, no candidatas, y no tiene sentido descartar una casa
+# comparable de Merlo por no informar "ambientes".
 alcance:
   anillo_activo: false   # solo se scrapea nucleo (Velez Sarsfield, Floresta) + propia (Monte Castro)
-  ambientes_min: 3       # descarta avisos de 1-2 ambientes y los que no informan ambientes
+  ambientes_min: 2       # descarta avisos de 1 ambiente y los que no informan ambientes
 
 # F4 (analysis/valuation.py): a qué barrios se expande la búsqueda de
 # comparables cuando el barrio solo no llega a 30 avisos. Geografía general
