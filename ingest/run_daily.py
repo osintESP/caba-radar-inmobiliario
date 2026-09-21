@@ -121,7 +121,12 @@ def main() -> int:
     all_events = append_events(pd.concat([new_delistings, new_price_changes], ignore_index=True), PRICE_EVENTS_PATH)
 
     adyacentes = load_yaml(CONFIG_DIR / "barrios.yaml").get("adyacentes", {})
-    comparables_pool = deduplicated_view(df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna()])
+    fuera_perimetro = (
+        df["fuera_de_perimetro"].fillna(False) if "fuera_de_perimetro" in df.columns else pd.Series(False, index=df.index)
+    )
+    comparables_pool = deduplicated_view(
+        df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna() & (~fuera_perimetro)]
+    )
 
     # F4 extendido a todo candidato visible, no solo "mi propiedad" (regla
     # anti-sesgo, analysis/valuation.py): mergea el percentil/mediana de

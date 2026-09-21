@@ -82,7 +82,8 @@ def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
         es_zona_externa = (
             df["zona_externa"].fillna(False) if "zona_externa" in df.columns else pd.Series(False, index=df.index)
         )
-        visible = df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna() & (~es_zona_externa)]
+        fuera = df["fuera_de_perimetro"].fillna(False) if "fuera_de_perimetro" in df.columns else pd.Series(False, index=df.index)
+        visible = df[(~df["es_outlier"].fillna(False)) & df["price_usd"].notna() & (~es_zona_externa) & (~fuera)]
 
     visible = deduplicated_view(visible)
 

@@ -47,6 +47,7 @@ from ingest import argenprop_scraper, dedupe, keywords, meli_scraper, zonaprop_s
 from ingest.browser_utils import browser_session
 from ingest.fx_mep import get_mep_rate
 from ingest.normalize import normalize_batch
+from ingest.perimetro import apply_perimetros
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 SNAPSHOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "snapshots"
@@ -63,6 +64,8 @@ DETAIL_FIELDS = [
     "ascensor",
     "expensas_ars",
     "condicion",
+    "lat",
+    "lon",
 ]
 
 
@@ -273,6 +276,7 @@ def run_snapshot(
 
     if fuentes.get("meli", True):
         known = load_known_attributes(snapshots_dir)
+        perimetros = barrios_cfg.get("perimetros") or {}
         max_new_fetches = barrios_cfg.get("scraping", {}).get("max_new_detail_fetches_por_corrida", 250)
 
         combos = [
@@ -317,6 +321,18 @@ def run_snapshot(
 
                     if portal_id in known:
                         record.update(known[portal_id])
+                        # Backfill de coordenadas: los avisos vistos antes de que
+                        # existiera lat/lon no las tienen; en barrios con
+                        # perímetro se re-piden de a poco (mismo cupo diario).
+                        if (
+                            barrio_nombre in perimetros
+                            and pd.isna(known[portal_id].get("lat"))
+                            and combo_new_fetches < per_combo_cap
+                            and new_fetches < max_new_fetches
+                        ):
+                            record.update(meli_scraper.fetch_detail(client, record["url"]))
+                            combo_new_fetches += 1
+                            new_fetches += 1
                     elif combo_new_fetches < per_combo_cap and new_fetches < max_new_fetches:
                         detail = meli_scraper.fetch_detail(client, record["url"])
                         record.update(detail)
@@ -354,6 +370,8 @@ def run_snapshot(
         captured_at=captured_at,
         price_usd_min=outliers_cfg.get("price_usd_min", 5000),
     )
+
+    apply_perimetros(rows, barrios_cfg.get("perimetros") or {})
 
     ambientes_min = barrios_cfg.get("alcance", {}).get("ambientes_min")
     antes = len(rows)

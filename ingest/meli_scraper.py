@@ -65,6 +65,11 @@ _MAX_DELAY = 4.0
 _LD_JSON_RE = re.compile(r'<script type="application/ld\+json"[^>]*>(.*?)</script>', re.S)
 _TOTAL_RE = re.compile(r'"total":(\d+)')
 _PORTAL_ID_RE = re.compile(r"MLA-?(\d+)")
+# Coordenadas del aviso: la página de detalle las embebe en el JSON del mapa.
+# Se toma la PRIMERA aparición — hay una posterior con el centro de Argentina
+# (-38.41, -63.61) que es un default del mapa, no la ubicación del aviso.
+_LAT_RE = re.compile(r'"latitude":"(-?\d+\.\d+)"')
+_LON_RE = re.compile(r'"longitude":"(-?\d+\.\d+)"')
 
 # Tabla "Características principales" (componente Andes) de la página de
 # detalle: filas label -> value, la fuente confiable de m²/ambientes/etc.
@@ -305,4 +310,8 @@ def fetch_detail(client: httpx.Client, url: str) -> dict[str, Any]:
     if condicion_match:
         condicion = "pozo" if condicion_match.group(1) == "NewCondition" else "usado"
 
-    return {**fields, "condicion": condicion, "descripcion": None}
+    lat_match, lon_match = _LAT_RE.search(html), _LON_RE.search(html)
+    lat = float(lat_match.group(1)) if lat_match else None
+    lon = float(lon_match.group(1)) if lon_match else None
+
+    return {**fields, "condicion": condicion, "descripcion": None, "lat": lat, "lon": lon}

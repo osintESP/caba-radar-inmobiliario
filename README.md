@@ -116,6 +116,18 @@ Piezas nuevas:
 no hay con qué comparar (F4 la exige, nunca se imputa). Hasta completarlo,
 el sitio muestra "faltan datos" en vez de un número inventado.
 
+## Perímetro por barrio
+
+`config/barrios.yaml: perimetros` acota un barrio a un polígono de
+coordenadas `[[lat, lon], ...]` (ej. dejar afuera la traza del Sarmiento o
+una avenida comercial). Los avisos fuera del polígono quedan guardados pero
+marcados `fuera_de_perimetro` y no se muestran ni cuentan como comparables
+(`ingest/perimetro.py`). Las coordenadas salen del detalle de Mercado Libre
+(`fetch_detail`); los avisos ya conocidos sin coordenadas se re-piden de a
+poco dentro del cupo diario. Un aviso sin coordenadas no se oculta (no hay
+dato para decidirlo). Zonaprop trae calle/altura pero no lat/lon, así que por
+ahora el perímetro solo aplica a ML. Sin polígono configurado no hay filtro.
+
 ## Desarrollo local
 
 ```bash

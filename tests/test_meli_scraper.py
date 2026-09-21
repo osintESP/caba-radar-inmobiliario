@@ -158,3 +158,16 @@ def test_parse_cocheras_discards_implausible_aggregate_value():
 
 def test_parse_cocheras_missing_value_stays_none():
     assert ms._parse_cocheras("sin dato") is None
+
+
+def test_fetch_detail_extrae_lat_lon_ignorando_el_default_de_argentina(monkeypatch):
+    import httpx
+
+    html = (
+        '<script>{"latitude":"-34.6320249","longitude":"-58.4865822","neighborhood":"Floresta"}'
+        '{"latitude":-38.416096,"longitude":-63.616673}</script>'
+    )
+    monkeypatch.setattr(ms, "_get", lambda c, u: httpx.Response(200, text=html, request=httpx.Request("GET", u)))
+    result = ms.fetch_detail(ms.make_client(), "https://x/MLA-1")
+    assert result["lat"] == -34.6320249
+    assert result["lon"] == -58.4865822

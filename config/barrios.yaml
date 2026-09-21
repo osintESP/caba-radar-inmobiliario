@@ -63,6 +63,17 @@ externas:
     meli_region: "bsas-gba-oeste"
     tipologias: ["casa"]
 
+# Perímetro por barrio (ingest/perimetro.py): polígono [[lat, lon], ...] que
+# acota la búsqueda dentro de un barrio. Los avisos fuera quedan guardados pero
+# marcados `fuera_de_perimetro` y no se muestran ni cuentan como comparables.
+# Sin entrada (o polígono vacío) el barrio no se filtra. Un aviso sin
+# coordenadas no se oculta (no hay dato para decidirlo). Solo Mercado Libre
+# aporta coordenadas por ahora (Zonaprop trae calle/altura, no lat/lon).
+perimetros: {}
+  # Floresta:
+  #   - [-34.63, -58.48]   # esquina 1
+  #   - ...
+
 # Alcance reducido a pedido del usuario (2026-09-09), para poder iterar y
 # detectar problemas/mejoras más fácil con un universo más chico — "luego
 # escalamos". Aplica a TODO el proyecto (scraping, dedupe, F4, sitio), no

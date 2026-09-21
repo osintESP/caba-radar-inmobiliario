@@ -19,26 +19,31 @@ from __future__ import annotations
 from pathlib import Path
 
 import pyarrow
+import pyarrow.parquet
 import pandas as pd
 
 _SNAPSHOT_COLUMNS = ["portal", "portal_id", "barrio", "usd_m2", "price_usd", "es_outlier"]
 
 
+_FLAG_COLUMNS = ["zona_externa", "fuera_de_perimetro"]
+
+
 def _load_all_snapshots(snapshots_dir: Path) -> pd.DataFrame:
     frames = []
     for path in sorted(snapshots_dir.glob("*.parquet")):
-        try:
-            snapshot = pd.read_parquet(path, columns=[*_SNAPSHOT_COLUMNS, "zona_externa"])
-        except pyarrow.ArrowInvalid:
-            # Snapshot de antes de que existiera "zona_externa" (2026-09-14,
-            # ver ingest/snapshot.py: externas) — ninguna fila era de zona
-            # externa todavía, así que se asume False para todas.
-            snapshot = pd.read_parquet(path, columns=_SNAPSHOT_COLUMNS)
-            snapshot["zona_externa"] = False
+        # Columnas-flag agregadas con el tiempo (zona_externa, fuera_de_perimetro):
+        # un snapshot anterior a alguna no la tiene — se asume False (ninguna
+        # fila estaba marcada todavía).
+        disponibles = set(pyarrow.parquet.read_schema(path).names)
+        pedidas = [*_SNAPSHOT_COLUMNS, *[c for c in _FLAG_COLUMNS if c in disponibles]]
+        snapshot = pd.read_parquet(path, columns=pedidas)
+        for flag in _FLAG_COLUMNS:
+            if flag not in snapshot.columns:
+                snapshot[flag] = False
         snapshot["fecha"] = path.stem
         frames.append(snapshot)
     if not frames:
-        return pd.DataFrame(columns=[*_SNAPSHOT_COLUMNS, "zona_externa", "fecha"])
+        return pd.DataFrame(columns=[*_SNAPSHOT_COLUMNS, *_FLAG_COLUMNS, "fecha"])
     return pd.concat(frames, ignore_index=True)
 
 
@@ -67,6 +72,7 @@ def build_market_trends(snapshots_dir: Path) -> dict[str, list[dict]]:
         # comparables de otro perfil, no pertenece a la Vista de Mercado de
         # este — sin este filtro aparecería como un barrio más en el gráfico.
         & (~all_snapshots["zona_externa"].fillna(False))
+        & (~all_snapshots["fuera_de_perimetro"].fillna(False))
     ]
     if validos.empty:
         return {}
