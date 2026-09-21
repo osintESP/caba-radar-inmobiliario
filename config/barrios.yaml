@@ -69,10 +69,15 @@ externas:
 # Sin entrada (o polígono vacío) el barrio no se filtra. Un aviso sin
 # coordenadas no se oculta (no hay dato para decidirlo). Solo Mercado Libre
 # aporta coordenadas por ahora (Zonaprop trae calle/altura, no lat/lon).
-perimetros: {}
-  # Floresta:
-  #   - [-34.63, -58.48]   # esquina 1
-  #   - ...
+perimetros:
+  # Floresta, acotada (pedido del usuario 2026-09-20) para dejar afuera la traza
+  # del Sarmiento/estación y la zona comercial de Av. Avellaneda. Cuatro
+  # puntos tomados a mano de Google Maps, en orden alrededor del área.
+  Floresta:
+    - [-34.62830675686133, -58.48446450530777]
+    - [-34.63241436843328, -58.4959598929452]
+    - [-34.621937672511024, -58.50903532462917]
+    - [-34.6150404204313, -58.49671556667805]
 
 # Alcance reducido a pedido del usuario (2026-09-09), para poder iterar y
 # detectar problemas/mejoras más fácil con un universo más chico — "luego
