@@ -160,14 +160,22 @@ def test_parse_cocheras_missing_value_stays_none():
     assert ms._parse_cocheras("sin dato") is None
 
 
-def test_fetch_detail_extrae_lat_lon_ignorando_el_default_de_argentina(monkeypatch):
+def test_fetch_detail_extrae_lat_lon_del_mapa_estatico(monkeypatch):
     import httpx
 
     html = (
-        '<script>{"latitude":"-34.6320249","longitude":"-58.4865822","neighborhood":"Floresta"}'
-        '{"latitude":-38.416096,"longitude":-63.616673}</script>'
+        '<img src="https://maps.googleapis.com/maps/api/staticmap?key=K&amp;maptype=roadmap'
+        '&amp;center=-34.6320249%2C-58.4865822&amp;zoom=16&amp;size=732x300">'
     )
     monkeypatch.setattr(ms, "_get", lambda c, u: httpx.Response(200, text=html, request=httpx.Request("GET", u)))
     result = ms.fetch_detail(ms.make_client(), "https://x/MLA-1")
     assert result["lat"] == -34.6320249
     assert result["lon"] == -58.4865822
+
+
+def test_fetch_detail_sin_mapa_deja_lat_lon_en_none(monkeypatch):
+    import httpx
+
+    monkeypatch.setattr(ms, "_get", lambda c, u: httpx.Response(200, text="<html></html>", request=httpx.Request("GET", u)))
+    result = ms.fetch_detail(ms.make_client(), "https://x/MLA-1")
+    assert result["lat"] is None and result["lon"] is None
