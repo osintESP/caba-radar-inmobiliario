@@ -128,6 +128,17 @@ poco dentro del cupo diario. Un aviso sin coordenadas no se oculta (no hay
 dato para decidirlo). Zonaprop trae calle/altura pero no lat/lon, así que por
 ahora el perímetro solo aplica a ML. Sin polígono configurado no hay filtro.
 
+## Avisos descartados ("no me gusta")
+
+Cada aviso tiene un botón para ocultarlo (✕ en la tabla de `index.html`,
+"No me gusta, ocultar" en las tarjetas de `papa.html`), con "Deshacer" por
+unos segundos y una opción para ver los ocultados y recuperarlos. La lista
+se guarda en `localStorage` del navegador (`site/descartados.js`), no en el
+repo: el sitio es estático y no tiene dónde escribir. Consecuencias: es por
+dispositivo (lo ocultado en la compu no se oculta en el celular) y por
+perfil (cada página tiene su propia lista). La clave es `portal:portal_id`,
+así que un aviso ocultado sigue oculto en los snapshots siguientes.
+
 ## Desarrollo local
 
 ```bash

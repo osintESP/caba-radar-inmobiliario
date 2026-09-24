@@ -750,3 +750,99 @@ a:hover {
   font-size: 1.05rem;
   padding: 2rem 0;
 }
+
+/* ---- Descartados ("no me gusta") ---- */
+
+.descartar-btn {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.descartar-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+tbody tr.is-descartado td {
+  opacity: 0.5;
+}
+
+tbody tr.is-descartado td:last-child {
+  opacity: 1;
+}
+
+.papa-listing__descartar {
+  display: block;
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.papa-listing__descartar:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.papa-descartados-toggle {
+  text-align: center;
+  margin: 1.5rem 0 2rem;
+}
+
+.papa-descartados-toggle button {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--fg);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.descarte-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--fg);
+  color: var(--bg);
+  box-shadow: var(--shadow);
+  font-weight: 600;
+  z-index: 1000;
+}
+
+.descarte-toast[hidden] {
+  display: none;
+}
+
+.descarte-toast button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  cursor: pointer;
+}

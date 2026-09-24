@@ -85,6 +85,10 @@
         <input type="checkbox" id="filter-nuevo" />
         Solo nuevos
       </label>
+      <label class="filters__checkbox">
+        <input type="checkbox" id="filter-descartados" />
+        <span id="filter-descartados-label">Ver descartados</span>
+      </label>
     </section>
 
     <section class="card table-card">
@@ -112,10 +116,11 @@
               <th data-key="n_duplicados" data-type="number" title="Cuántos avisos de otras inmobiliarias/portales se agruparon acá">Dup.</th>
               <th data-key="captured_at" data-type="string">Capturado</th>
               <th>Aviso / Ficha</th>
+              <th title="Ocultar este aviso de la lista (se guarda en este navegador). Se recupera tildando &quot;Ver descartados&quot;.">No me gusta</th>
             </tr>
           </thead>
           <tbody id="listings-body">
-            <tr><td colspan="20">Sin datos todavía.</td></tr>
+            <tr><td colspan="21">Sin datos todavía.</td></tr>
           </tbody>
         </table>
       </div>
@@ -145,6 +150,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="descartados.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

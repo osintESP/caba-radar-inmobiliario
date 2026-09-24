@@ -31,6 +31,7 @@ let priceHistoryCache = null;
 let marketTrendsCache = null;
 let fichaChart = null;
 let mercadoChart = null;
+const descartados = crearDescartados("radar.descartados");
 
 async function fetchJsonSafe(url) {
   try {
@@ -255,6 +256,7 @@ function applyFilters(rows) {
   const soloConCochera = document.getElementById("filter-cochera").checked;
   const soloNuevos = document.getElementById("filter-nuevo").checked;
   const tagsQuery = document.getElementById("filter-tags").value.trim().toLowerCase();
+  const verDescartados = document.getElementById("filter-descartados").checked;
 
   return rows.filter((r) => {
     if (portal && r.portal !== portal) return false;
@@ -269,6 +271,7 @@ function applyFilters(rows) {
     if (soloConCochera && !(r.cocheras > 0)) return false;
     if (soloNuevos && !r.es_nuevo) return false;
     if (tagsQuery && !(r.tags || "").toLowerCase().includes(tagsQuery)) return false;
+    if (!verDescartados && descartados.tiene(`${r.portal}:${r.portal_id}`)) return false;
     return true;
   });
 }
@@ -290,9 +293,11 @@ function render() {
   const rows = sortRows(applyFilters(currentData));
   const tbody = document.getElementById("listings-body");
   tbody.innerHTML = "";
+  const nDescartados = currentData.filter((r) => descartados.tiene(`${r.portal}:${r.portal_id}`)).length;
+  document.getElementById("filter-descartados-label").textContent = `Ver descartados (${nDescartados})`;
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="20">Ningún aviso coincide con el filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="21">Ningún aviso coincide con el filtro.</td></tr>';
     return;
   }
 
@@ -307,6 +312,8 @@ function render() {
     if (r.es_nuevo) tr.classList.add("is-new");
     if (esBuenPrecio) tr.classList.add("is-good-value");
     if (esPrecioAlto) tr.classList.add("is-high-value");
+    const esDescartado = descartados.tiene(clave);
+    if (esDescartado) tr.classList.add("is-descartado");
     tr.innerHTML = `
       <td>${r.es_nuevo ? '<span class="badge-new">Nuevo</span>' : "—"}</td>
       <td>${r.barrio ?? "s/d"}</td>
@@ -334,6 +341,9 @@ function render() {
       <td>
         <a href="${r.url}" target="_blank" rel="noopener">Ver</a>
         <button type="button" class="ficha-link" data-clave="${encodeURIComponent(clave)}">Ficha</button>
+      </td>
+      <td>
+        <button type="button" class="descartar-btn" data-clave="${encodeURIComponent(clave)}" title="${esDescartado ? "Volver a mostrar este aviso" : "No me gusta: ocultar este aviso"}">${esDescartado ? "Recuperar" : "✕"}</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -368,8 +378,27 @@ function setupSortableHeaders() {
   });
 }
 
+function setupDescartes() {
+  document.getElementById("listings-body").addEventListener("click", (e) => {
+    const btn = e.target.closest(".descartar-btn");
+    if (!btn) return;
+    const clave = decodeURIComponent(btn.dataset.clave);
+    if (descartados.tiene(clave)) {
+      descartados.quitar(clave);
+      render();
+      return;
+    }
+    descartados.agregar(clave);
+    render();
+    mostrarToastDeshacer("Aviso descartado.", () => {
+      descartados.quitar(clave);
+      render();
+    });
+  });
+}
+
 function setupFilters() {
-  const changeIds = ["filter-portal", "filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera", "filter-nuevo"];
+  const changeIds = ["filter-portal", "filter-barrio", "filter-tipo", "filter-condicion", "filter-cochera", "filter-nuevo", "filter-descartados"];
   const inputIds = ["filter-ambientes-min", "filter-ambientes-max", "filter-banos-min", "filter-precio-min", "filter-precio-max", "filter-tags"];
   changeIds.forEach((id) => document.getElementById(id).addEventListener("change", render));
   inputIds.forEach((id) => document.getElementById(id).addEventListener("input", render));
@@ -378,5 +407,6 @@ function setupFilters() {
 setupSortableHeaders();
 setupFilters();
 setupFichaModal();
+setupDescartes();
 updateTableFade = setupTableFade();
 loadData();

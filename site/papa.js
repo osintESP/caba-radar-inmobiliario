@@ -17,6 +17,11 @@ const fmtDate = (iso) => (iso ? new Date(iso).toLocaleString("es-AR") : "s/d");
 
 let currentData = [];
 let busqueda = { ambientes_objetivo: 2, tipos: ["departamento", "ph"] };
+// Lista propia, separada de la de index.html: lo que no le gusta a un
+// perfil no tiene por qué ocultarse para el otro.
+const descartados = crearDescartados("radar.descartados.papa");
+let verDescartados = false;
+const claveDe = (r) => `${r.portal}:${r.portal_id}`;
 
 async function loadData() {
   const banner = document.getElementById("status-banner");
@@ -99,6 +104,7 @@ function applyFilters(rows) {
     if (!ambientesOk.includes(r.ambientes)) return false;
     if (!tipos.includes(r.tipo)) return false;
     if (barrio && r.barrio !== barrio) return false;
+    if (descartados.tiene(claveDe(r)) !== verDescartados) return false;
     return true;
   });
 }
@@ -133,6 +139,11 @@ function tarjeta(r) {
         : `Sobran ${fmtNum(Math.abs(brecha))} USD`;
   const brechaClase = brecha !== null && brecha !== undefined && brecha <= 0 ? "papa-listing__brecha--sobra" : "";
 
+  const clave = encodeURIComponent(claveDe(r));
+  const botonDescarte = verDescartados
+    ? `<button type="button" class="papa-listing__descartar" data-clave="${clave}">Volver a mostrar</button>`
+    : `<button type="button" class="papa-listing__descartar" data-clave="${clave}">No me gusta, ocultar</button>`;
+
   return `
     <article class="papa-listing">
       <div class="papa-listing__head">
@@ -147,14 +158,22 @@ function tarjeta(r) {
       </div>
       <div class="papa-listing__brecha ${brechaClase}">${brechaTexto}</div>
       <a class="papa-listing__link" href="${r.url}" target="_blank" rel="noopener">Ver aviso completo</a>
+      ${botonDescarte}
     </article>
   `;
 }
 
 function render() {
+  const nDescartados = currentData.filter((r) => descartados.tiene(claveDe(r))).length;
+  // Recuperado el último ocultado, no tiene sentido quedarse en una lista vacía.
+  if (nDescartados === 0) verDescartados = false;
   const rows = sortRows(applyFilters(currentData));
   const contenedor = document.getElementById("papa-resultados");
   const vacio = document.getElementById("papa-vacio");
+
+  const toggle = document.getElementById("papa-ver-descartados");
+  toggle.hidden = nDescartados === 0 && !verDescartados;
+  toggle.textContent = verDescartados ? "Volver a la búsqueda" : `Ver avisos ocultados (${nDescartados})`;
 
   if (rows.length === 0) {
     contenedor.innerHTML = "";
@@ -168,6 +187,29 @@ function render() {
 function setupControls() {
   ["papa-filter-ambientes", "papa-filter-barrio", "papa-sort"].forEach((id) => {
     document.getElementById(id).addEventListener("change", render);
+  });
+
+  document.getElementById("papa-ver-descartados").addEventListener("click", () => {
+    verDescartados = !verDescartados;
+    render();
+    window.scrollTo({ top: 0 });
+  });
+
+  document.getElementById("papa-resultados").addEventListener("click", (e) => {
+    const btn = e.target.closest(".papa-listing__descartar");
+    if (!btn) return;
+    const clave = decodeURIComponent(btn.dataset.clave);
+    if (descartados.tiene(clave)) {
+      descartados.quitar(clave);
+      render();
+      return;
+    }
+    descartados.agregar(clave);
+    render();
+    mostrarToastDeshacer("Aviso ocultado.", () => {
+      descartados.quitar(clave);
+      render();
+    });
   });
 }
 
