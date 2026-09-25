@@ -8,6 +8,7 @@ from ingest.snapshot import (
     all_barrios,
     apply_alcance_filter,
     externas_zonas,
+    load_argenprop_local,
     load_known_descriptions,
     load_known_portal_ids,
 )
@@ -209,3 +210,32 @@ def test_enrich_descriptions_respects_daily_cap(tmp_path):
 
     con_descripcion = [r for r in records if r.get("descripcion") is not None]
     assert len(con_descripcion) == 2  # respeta el tope, el resto queda para mañana
+
+
+def _argenprop_file(dir_, fecha, rows):
+    dir_.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_parquet(dir_ / f"{fecha}.parquet", index=False)
+
+
+def test_load_argenprop_local_usa_el_mas_reciente_y_convierte_nan_a_none(tmp_path):
+    _argenprop_file(tmp_path, "2026-09-23", [{"portal_id": "AP1", "ambientes": 2.0, "cocheras": None}])
+    _argenprop_file(
+        tmp_path,
+        "2026-09-24",
+        [{"portal_id": "AP2", "ambientes": 3.0, "cocheras": None}, {"portal_id": "AP3", "ambientes": None, "cocheras": 1.0}],
+    )
+    records = load_argenprop_local(tmp_path, "2026-09-25", max_age_days=1)
+    assert [r["portal_id"] for r in records] == ["AP2", "AP3"]
+    assert records[0]["cocheras"] is None
+    assert records[1]["ambientes"] is None
+
+
+def test_load_argenprop_local_descarta_archivo_viejo(tmp_path):
+    _argenprop_file(tmp_path, "2026-09-20", [{"portal_id": "AP1", "ambientes": 2.0}])
+    assert load_argenprop_local(tmp_path, "2026-09-25", max_age_days=1) == []
+
+
+def test_load_argenprop_local_ignora_archivos_del_futuro_y_dir_vacio(tmp_path):
+    assert load_argenprop_local(tmp_path, "2026-09-25") == []
+    _argenprop_file(tmp_path, "2026-09-26", [{"portal_id": "AP1", "ambientes": 2.0}])
+    assert load_argenprop_local(tmp_path, "2026-09-25") == []

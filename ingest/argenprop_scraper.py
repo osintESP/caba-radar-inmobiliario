@@ -34,6 +34,17 @@ from ingest.browser_utils import fetch_rendered_html
 
 BASE_URL = "https://www.argenprop.com"
 
+# Ritmo propio, mucho más lento que el default de browser_utils: con 2-4s
+# entre páginas, el WAF pide captcha a la ~6ª página incluso desde una IP
+# residencial (confirmado 2026-09-25). El captcha no se resuelve esperando ni
+# reintentando, así que no se reintenta: se frena (ver ingest/argenprop_local.py).
+PAGE_DELAY_S = (25.0, 45.0)
+MAX_ATTEMPTS = 1
+
+
+def _fetch(browser: Browser, url: str) -> str:
+    return fetch_rendered_html(browser, url, max_attempts=MAX_ATTEMPTS, delay_s=PAGE_DELAY_S)
+
 TIPO_PLURAL = {
     "departamento": "departamentos",
     "ph": "ph",
@@ -202,7 +213,7 @@ def parse_search_results(html: str, tipo: str, barrio_hint: str) -> list[dict[st
 
 def search_barrio_tipo(browser: Browser, barrio_nombre: str, barrio_slug: str, tipo: str, max_pages: Optional[int] = None):
     url = build_search_url(tipo, barrio_slug, page=1)
-    html = fetch_rendered_html(browser, url)
+    html = _fetch(browser, url)
 
     seen_ids: set[str] = set()
     for r in parse_search_results(html, tipo, barrio_nombre):
@@ -218,7 +229,7 @@ def search_barrio_tipo(browser: Browser, barrio_nombre: str, barrio_slug: str, t
 
     page_num = 2
     while page_num <= n_pages_estimate:
-        html = fetch_rendered_html(browser, build_search_url(tipo, barrio_slug, page=page_num))
+        html = _fetch(browser, build_search_url(tipo, barrio_slug, page=page_num))
         results = parse_search_results(html, tipo, barrio_nombre)
         if not results:
             break

@@ -55,6 +55,9 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add data/snapshots/ data/latest.json data/price_events.parquet data/price_history.json data/market_trends.json
           git diff --cached --quiet && echo "Sin cambios, no se commitea." || git commit -m "snapshot $(date -u +%F)"
+          # La corrida dura horas: en el medio puede haber llegado el push de
+          # Argenprop desde la Mac (data/argenprop/) u otro commit a main.
+          git pull --rebase origin main
           git push
 
       - name: Copiar JSON del sitio

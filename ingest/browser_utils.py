@@ -50,7 +50,16 @@ _MAX_DELAY = 4.0
 # mostrando esto en vez del contenido real. Si esto se toma silenciosamente
 # como "0 avisos", contamina los datos (un barrio entero parece vacío sin
 # estarlo). Por eso `fetch_rendered_html` lo detecta y reintenta.
-_CHALLENGE_MARKERS = ("Just a moment", "cf-mitigated", "challenges.cloudflare.com")
+# Argenprop (AWS WAF): después de unas pocas páginas seguidas, también desde
+# una IP residencial, responde un captcha "Human Verification" en vez del
+# listado (confirmado 2026-09-25). Tampoco se resuelve solo.
+_CHALLENGE_MARKERS = (
+    "Just a moment",
+    "cf-mitigated",
+    "challenges.cloudflare.com",
+    "captcha.awswaf.com",
+    "<title>Human Verification</title>",
+)
 
 
 def is_challenge_page(html: str) -> bool:
@@ -86,7 +95,13 @@ def _fetch_once(browser: Browser, url: str, extra_wait_ms: int) -> str:
         context.close()
 
 
-def fetch_rendered_html(browser: Browser, url: str, extra_wait_ms: int = 4000, max_attempts: int = 3) -> str:
+def fetch_rendered_html(
+    browser: Browser,
+    url: str,
+    extra_wait_ms: int = 4000,
+    max_attempts: int = 3,
+    delay_s: tuple[float, float] = (_MIN_DELAY, _MAX_DELAY),
+) -> str:
     """Navega a `url` en un contexto nuevo, con el rate limit cortés, y
     devuelve el HTML ya renderizado (después del challenge de
     Cloudflare/WAF y de que el JS del cliente termine de pintar la lista
@@ -101,7 +116,7 @@ def fetch_rendered_html(browser: Browser, url: str, extra_wait_ms: int = 4000, m
     """
     last_html = ""
     for attempt in range(1, max_attempts + 1):
-        time.sleep(random.uniform(_MIN_DELAY, _MAX_DELAY))
+        time.sleep(random.uniform(*delay_s))
         last_html = _fetch_once(browser, url, extra_wait_ms * attempt)
         if not is_challenge_page(last_html):
             return last_html

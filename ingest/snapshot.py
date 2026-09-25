@@ -51,6 +51,9 @@ from ingest.perimetro import apply_perimetros
 
 CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 SNAPSHOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "snapshots"
+# Argenprop scrapeado desde una IP residencial (ver ingest/argenprop_local.py):
+# su WAF bloquea las IPs de datacenter de GitHub Actions.
+ARGENPROP_LOCAL_DIR = Path(__file__).resolve().parent.parent / "data" / "argenprop"
 
 DETAIL_FIELDS = [
     "m2_total",
@@ -173,6 +176,40 @@ def load_known_portal_ids(snapshots_dir: Path) -> set[str]:
     return ids
 
 
+def load_argenprop_local(local_dir: Path, fecha: str, max_age_days: int = 1) -> list[dict[str, Any]]:
+    """Registros crudos de Argenprop del archivo más reciente en `local_dir`
+    (uno por día, `YYYY-MM-DD.parquet`, escrito por ingest/argenprop_local.py
+    desde la Mac). Si el más reciente tiene más de `max_age_days` de
+    antigüedad respecto de `fecha`, no se usa: mejor que Argenprop falte ese
+    día (price_events ignora portales ausentes) a mostrar como activos
+    avisos que quizás ya no existen."""
+    hoy = dt.date.fromisoformat(fecha)
+    candidatos = []
+    for path in local_dir.glob("*.parquet"):
+        try:
+            dia = dt.date.fromisoformat(path.stem)
+        except ValueError:
+            continue
+        if dia <= hoy:
+            candidatos.append((dia, path))
+    if not candidatos:
+        print("AVISO: no hay datos locales de Argenprop, se sigue sin ese portal.")
+        return []
+    dia, path = max(candidatos)
+    if (hoy - dia).days > max_age_days:
+        print(f"AVISO: el último Argenprop local es del {dia} (más de {max_age_days} día(s)), no se usa.")
+        return []
+    df = pd.read_parquet(path)
+    # parquet guarda None de columnas numéricas como NaN; el resto del
+    # pipeline (apply_alcance_filter, normalize) espera None para "sin dato".
+    records = [
+        {k: (None if isinstance(v, float) and pd.isna(v) else v) for k, v in rec.items()}
+        for rec in df.drop(columns=["captured_at"], errors="ignore").to_dict(orient="records")
+    ]
+    print(f"Argenprop local: {len(records)} avisos del {dia}.")
+    return records
+
+
 def _scrape_browser_portal(
     scraper_module: Any,
     browser: Any,
@@ -254,7 +291,12 @@ def run_snapshot(
     fuentes = barrios_cfg.get("fuentes", {})
     raw_records: list[dict[str, Any]] = []
 
-    if fuentes.get("zonaprop", True) or fuentes.get("argenprop", True):
+    # argenprop: true (scrapear acá mismo), false, o "local" (usar lo que
+    # subió ingest/argenprop_local.py desde la Mac — ver ARGENPROP_LOCAL_DIR).
+    argenprop_modo = fuentes.get("argenprop", True)
+    argenprop_en_browser = argenprop_modo is True
+
+    if fuentes.get("zonaprop", True) or argenprop_en_browser:
         # Zonaprop/Argenprop van ANTES que ML a propósito: Cloudflare
         # comparte reputación de IP entre los sitios que protege, y ML por
         # sí solo ya hace miles de requests desde la misma IP del runner.
@@ -269,10 +311,14 @@ def run_snapshot(
                     zonaprop_records = _scrape_browser_portal(zonaprop_scraper, browser, barrios_cfg)
                     _enrich_descriptions(zonaprop_records, zonaprop_scraper, browser, snapshots_dir, barrios_cfg)
                     raw_records.extend(zonaprop_records)
-                if fuentes.get("argenprop", True):
+                if argenprop_en_browser:
                     raw_records.extend(_scrape_browser_portal(argenprop_scraper, browser, barrios_cfg))
         except Exception as exc:  # noqa: BLE001 — degradación intencional, no silenciosa: se imprime igual
             print(f"AVISO: Zonaprop/Argenprop fallaron, se sigue solo con ML. Error: {exc}")
+
+    if argenprop_modo == "local":
+        max_age = barrios_cfg.get("scraping", {}).get("argenprop_local_max_dias", 1)
+        raw_records.extend(load_argenprop_local(ARGENPROP_LOCAL_DIR, fecha, max_age_days=max_age))
 
     if fuentes.get("meli", True):
         known = load_known_attributes(snapshots_dir)

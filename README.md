@@ -66,10 +66,30 @@ IP de datacenter, no local) — resultado dividido:
   Actions (25/25 avisos reales). `fuentes.zonaprop: true` en
   `config/barrios.yaml`, ya integrado a la corrida diaria.
 - **Argenprop: NO funciona desde Actions** (0 avisos, aunque local anda
-  perfecto) — su WAF sí distingue la IP de datacenter. `fuentes.argenprop`
-  queda en `false` hasta investigar más o, como ya preveía el plan
-  original, correrlo localmente en vez de en Actions y pushear el
-  resultado desde ahí.
+  perfecto; re-verificado 2026-09-25) — su WAF sí distingue la IP de
+  datacenter. Se resolvió corriéndolo **desde la Mac** (ver abajo).
+
+### Argenprop desde la Mac
+
+`ingest/argenprop_local.py` scrapea Argenprop desde la conexión de casa y
+sube los avisos crudos del día a `data/argenprop/YYYY-MM-DD.parquet`. La
+corrida de Actions (`fuentes.argenprop: local`) los suma al snapshot si el
+archivo tiene como mucho `scraping.argenprop_local_max_dias` (1) de
+antigüedad; si no, ese día Argenprop se omite — y `price_events` no cuenta
+como "desaparecidos" los avisos de un portal que no se scrapeó.
+
+Programado con launchd todos los días a las 08:30:
+
+```bash
+scripts/launchd/install_argenprop.sh               # instalar / reinstalar
+scripts/launchd/install_argenprop.sh --uninstall
+launchctl kickstart gui/$(id -u)/com.radar-inmobiliario.argenprop   # correr ya
+tail -f ~/Library/Logs/radar-argenprop.log
+```
+
+Requisitos: la Mac prendida (si está dormida a las 08:30 corre al
+despertar; apagada, se saltea el día), el repo en `main`, y git con
+credenciales para pushear sin preguntar (hoy: keychain de macOS).
 
 Para repetir la prueba (por ejemplo si se ajusta algo del scraper de
 Argenprop):

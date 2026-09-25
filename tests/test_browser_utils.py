@@ -59,3 +59,8 @@ def test_fetch_rendered_html_raises_after_exhausting_retries():
     with pytest.raises(ChallengePageError):
         fetch_rendered_html(browser, "https://x", extra_wait_ms=1, max_attempts=3)
     assert browser.new_context.call_count == 3
+
+
+def test_captcha_de_aws_waf_cuenta_como_challenge():
+    html = '<html><head><title>Human Verification</title><link href="https://static.captcha.awswaf.com/x.css"></head></html>'
+    assert is_challenge_page(html)

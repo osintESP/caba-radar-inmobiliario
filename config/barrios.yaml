@@ -147,6 +147,10 @@ scraping:
   # aviso que el detalle de ML. Por ahora solo Zonaprop soporta esto
   # (fetch_description); ML/Argenprop quedan para una iteración futura.
   max_new_descriptions_por_corrida: 300
+  # Antigüedad máxima (en días) del archivo de Argenprop subido desde la
+  # Mac (data/argenprop/) para usarlo en la corrida de Actions. Más viejo
+  # que esto, Argenprop se omite ese día en vez de mostrar datos rancios.
+  argenprop_local_max_dias: 1
 
 fuentes:
   # Verificado con .github/workflows/test-f2-browsers.yml (corrida real en
@@ -155,6 +159,10 @@ fuentes:
   # devolvió 0 avisos desde Actions aunque local funciona perfecto. Hasta
   # investigar más (o resolverlo corriendo Argenprop localmente, como ya
   # preveía el plan), argenprop queda apagado en la corrida diaria.
+  # Re-verificado 2026-09-25: sigue igual (Zonaprop 85, Argenprop 0).
+  # "local": Argenprop se scrapea desde la Mac (ingest/argenprop_local.py,
+  # programado con launchd) y la corrida de Actions usa ese archivo —
+  # ver scraping.argenprop_local_max_dias.
   meli: true
   zonaprop: true
-  argenprop: false
+  argenprop: local

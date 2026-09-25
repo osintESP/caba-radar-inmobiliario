@@ -61,6 +61,17 @@ def detect_delistings(current_df: pd.DataFrame, snapshots_dir: Path, current_pat
     if "portal_id" not in previous_df.columns or previous_df.empty:
         return pd.DataFrame(columns=EVENTS_COLUMNS)
 
+    # Solo se comparan combinaciones portal/barrio/tipo presentes hoy. Una
+    # que no trajo NINGÚN aviso casi siempre es una que no se scrapeó (el
+    # portal falló, Argenprop frenó por captcha a mitad de camino, o la
+    # corrida local no llegó a correr), no que todos sus avisos se vendieran
+    # de golpe. Costo aceptado: si el ÚLTIMO aviso de una combinación
+    # desaparece, esa baja no se registra.
+    combo_cols = [c for c in ("portal", "barrio", "tipo") if c in previous_df.columns and c in current_df.columns]
+    if combo_cols and not current_df.empty:
+        presentes = set(map(tuple, current_df[combo_cols].drop_duplicates().to_numpy().tolist()))
+        previous_df = previous_df[[tuple(x) in presentes for x in previous_df[combo_cols].to_numpy().tolist()]]
+
     current_ids = set(current_df["portal_id"]) if not current_df.empty else set()
     gone = previous_df[~previous_df["portal_id"].isin(current_ids)]
     if gone.empty:

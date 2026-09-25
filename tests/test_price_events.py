@@ -137,3 +137,42 @@ def test_delisted_listing_has_no_price_change_row(tmp_path):
 
     result = detect_price_changes(current, tmp_path, current_path, "2026-01-02")
     assert result.empty
+
+
+def test_portal_ausente_hoy_no_genera_desapariciones_masivas(tmp_path):
+    """Si un portal entero no se scrapeó hoy (Argenprop local no corrió,
+    Zonaprop falló), sus avisos no 'desaparecieron': no hay dato."""
+    previous = pd.DataFrame(
+        [_listing("A"), _listing("AP1", portal="argenprop"), _listing("AP2", portal="argenprop")]
+    )
+    previous.to_parquet(tmp_path / "2026-01-01.parquet", index=False)
+
+    current = pd.DataFrame([_listing("A")])  # hoy solo hay ML
+    result = detect_delistings(current, tmp_path, tmp_path / "2026-01-02.parquet", "2026-01-02")
+    assert result.empty
+
+
+def test_portal_presente_hoy_sigue_detectando_desapariciones(tmp_path):
+    previous = pd.DataFrame([_listing("AP1", portal="argenprop"), _listing("AP2", portal="argenprop")])
+    previous.to_parquet(tmp_path / "2026-01-01.parquet", index=False)
+
+    current = pd.DataFrame([_listing("AP1", portal="argenprop")])
+    result = detect_delistings(current, tmp_path, tmp_path / "2026-01-02.parquet", "2026-01-02")
+    assert result["portal_id"].tolist() == ["AP2"]
+
+
+def test_combo_barrio_tipo_ausente_hoy_no_cuenta_como_desaparecido(tmp_path):
+    """Scrape parcial (Argenprop frenó por captcha antes de llegar a Floresta):
+    los avisos de Floresta no se vendieron, simplemente no se miraron."""
+    previous = pd.DataFrame(
+        [
+            _listing("AP1", portal="argenprop", barrio="Monte Castro"),
+            _listing("AP2", portal="argenprop", barrio="Monte Castro"),
+            _listing("AP3", portal="argenprop", barrio="Floresta"),
+        ]
+    )
+    previous.to_parquet(tmp_path / "2026-01-01.parquet", index=False)
+
+    current = pd.DataFrame([_listing("AP1", portal="argenprop", barrio="Monte Castro")])
+    result = detect_delistings(current, tmp_path, tmp_path / "2026-01-02.parquet", "2026-01-02")
+    assert result["portal_id"].tolist() == ["AP2"]
