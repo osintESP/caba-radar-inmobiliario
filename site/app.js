@@ -32,6 +32,7 @@ let marketTrendsCache = null;
 let fichaChart = null;
 let mercadoChart = null;
 const descartados = crearDescartados("radar.descartados");
+let vista = "tabla";
 
 async function fetchJsonSafe(url) {
   try {
@@ -49,6 +50,7 @@ async function loadData() {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     currentData = data.avisos || [];
+    rowsByClave = Object.fromEntries(currentData.map((r) => [`${r.portal}:${r.portal_id}`, r]));
     const desaparecidos =
       data.n_desaparecidos_hoy !== undefined
         ? ` · ${data.n_desaparecidos_hoy} avisos desaparecieron hoy (posible reserva/venta)`
@@ -160,15 +162,50 @@ async function renderMercadoChart() {
 async function openFicha(clave) {
   const modal = document.getElementById("ficha-modal");
   const title = document.getElementById("ficha-title");
+  const foto = document.getElementById("ficha-foto");
+  const datos = document.getElementById("ficha-datos");
+  const acciones = document.getElementById("ficha-acciones");
   const canvas = document.getElementById("ficha-canvas");
   const empty = document.getElementById("ficha-empty");
   const descuento = document.getElementById("ficha-descuento");
   const r = rowsByClave[clave];
+  if (!r) return;
 
-  title.textContent = r ? r.titulo || `${r.barrio} · ${r.tipo} · ${r.ambientes ?? "s/d"} amb.` : "Ficha de propiedad";
+  title.textContent = lugarDe(r);
+  document.getElementById("ficha-titulo-aviso").textContent = r.titulo || "";
+  foto.hidden = !r.imagen_url;
+  if (r.imagen_url) foto.src = fotoUrl(r.imagen_url, "grande");
+
+  // Todo lo que no entra en la tabla compacta vive acá.
+  const filas = [
+    ["Precio", `USD ${fmtNum(r.price_usd)}`],
+    ["Brecha neta", `${fmtSigned(r.brecha_neta_usd)} USD`],
+    ["USD/m²", fmtNum(r.usd_m2)],
+    ["Mediana zona", r.veredicto_zona === "ok" ? `${fmtNum(r.usd_m2_mediana_zona)} USD/m²` : "s/d"],
+    ["Percentil zona", r.veredicto_zona === "ok" ? `${Math.round(r.percentil_zona)} (de ${r.n_comparables_zona} comparables)` : "s/d"],
+    ["Desc. a pedir", fmtPct(r.pct_negociacion_estimado)],
+    ["m² cubiertos", fmtNum(r.m2_cubiertos)],
+    ["Ambientes", r.ambientes ?? "s/d"],
+    ["Baños", r.banos ?? "s/d"],
+    ["Cochera", r.cocheras === null || r.cocheras === undefined ? "s/d" : r.cocheras > 0 ? `Sí (${r.cocheras})` : "No"],
+    ["Condición", r.condicion ?? "s/d"],
+    ["Antigüedad", r.antiguedad === null || r.antiguedad === undefined ? "s/d" : `${r.antiguedad} años`],
+    ["Piso", r.piso ?? "s/d"],
+    ["Ascensor", r.ascensor === null || r.ascensor === undefined ? "s/d" : r.ascensor ? "Sí" : "No"],
+    ["Expensas", r.expensas_ars ? `ARS ${fmtNum(r.expensas_ars)}` : "s/d"],
+    ["Portal", `${r.portal ?? "s/d"}${(r.n_duplicados ?? 1) > 1 ? ` · publicado ×${r.n_duplicados}` : ""}`],
+    ["Capturado", fmtDate(r.captured_at)],
+  ];
+  if (r.tags) filas.push(["Tags", r.tags.split(",").join(", ")]);
+  datos.innerHTML = filas.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("");
+
+  acciones.innerHTML =
+    `<a class="btn btn--primary" href="${esc(r.url)}" target="_blank" rel="noopener">Ver aviso completo</a>` +
+    botonDescarte(clave, "btn");
+
   modal.hidden = false;
 
-  if (r && r.pct_negociacion_estimado !== null && r.pct_negociacion_estimado !== undefined) {
+  if (r.pct_negociacion_estimado !== null && r.pct_negociacion_estimado !== undefined) {
     const ubicacion =
       r.veredicto_zona === "ok" && r.percentil_zona !== null
         ? `está en el percentil ${Math.round(r.percentil_zona)} de sus ${r.n_comparables_zona} comparables de zona`
@@ -207,15 +244,40 @@ function closeFicha() {
   document.getElementById("ficha-modal").hidden = true;
 }
 
-function setupFichaModal() {
-  document.getElementById("listings-body").addEventListener("click", (e) => {
-    const btn = e.target.closest(".ficha-link");
-    if (!btn) return;
-    openFicha(decodeURIComponent(btn.dataset.clave));
-  });
+// Un solo listener para tabla, galería y ficha: descartar, abrir ficha
+// (botón, foto o click en cualquier parte de la fila/tarjeta que no sea un
+// link o botón propio).
+function setupAcciones() {
+  const onClick = (e) => {
+    const descartar = e.target.closest(".descartar-btn");
+    if (descartar) {
+      toggleDescarte(decodeURIComponent(descartar.dataset.clave));
+      return;
+    }
+    if (e.target.closest("a, button:not(.ficha-link)")) return;
+    const item = e.target.closest("[data-clave]");
+    if (item) openFicha(decodeURIComponent(item.dataset.clave));
+  };
+  ["listings-body", "vista-galeria", "ficha-acciones"].forEach((id) => document.getElementById(id).addEventListener("click", onClick));
   document.querySelectorAll('[data-close="ficha"]').forEach((el) => el.addEventListener("click", closeFicha));
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeFicha();
+  });
+}
+
+function toggleDescarte(clave) {
+  if (descartados.tiene(clave)) {
+    descartados.quitar(clave);
+    render();
+    if (!document.getElementById("ficha-modal").hidden) openFicha(clave);
+    return;
+  }
+  descartados.agregar(clave);
+  closeFicha();
+  render();
+  mostrarToastDeshacer("Aviso descartado.", () => {
+    descartados.quitar(clave);
+    render();
   });
 }
 
@@ -289,66 +351,204 @@ function sortRows(rows) {
   });
 }
 
+const TIPO_CORTO = { departamento: "Depto", ph: "PH", casa: "Casa" };
+
+function esc(v) {
+  return String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+function lugarDe(r) {
+  const tipo = TIPO_CORTO[r.tipo] || r.tipo || "s/d";
+  return `${r.barrio ?? "s/d"} · ${tipo} · ${r.ambientes ?? "s/d"} amb.`;
+}
+
+// Datos secundarios en una sola línea, solo los que el aviso tiene.
+function resumenDe(r) {
+  const partes = [];
+  if (r.m2_cubiertos) partes.push(`${fmtNum(r.m2_cubiertos)} m²`);
+  if (r.banos) partes.push(`${r.banos} ${r.banos === 1 ? "baño" : "baños"}`);
+  if (r.cocheras > 0) partes.push("cochera");
+  if (r.antiguedad !== null && r.antiguedad !== undefined) partes.push(r.antiguedad === 0 ? "a estrenar" : `${r.antiguedad} años`);
+  return partes.join(" · ");
+}
+
+function badgesDe(r) {
+  const b = [];
+  if (r.es_nuevo) b.push('<span class="badge-new">Nuevo</span>');
+  if (r.condicion === "pozo") b.push('<span class="badge-new">Pozo</span>');
+  if (esBuenPrecio(r)) b.push('<span class="badge-good">Buen precio</span>');
+  if (esPrecioAlto(r)) b.push('<span class="badge-high">Precio alto</span>');
+  if ((r.n_duplicados ?? 1) > 1) b.push(`<span class="badge-dup" title="Publicado por ${r.n_duplicados} avisos/portales">×${r.n_duplicados}</span>`);
+  return b.join(" ");
+}
+
+const esBuenPrecio = (r) => r.veredicto_zona === "ok" && r.percentil_zona !== null && r.percentil_zona <= 25;
+const esPrecioAlto = (r) => r.veredicto_zona === "ok" && r.percentil_zona !== null && r.percentil_zona >= 75;
+
+function fotoDe(r, clase) {
+  return r.imagen_url
+    ? `<img class="${clase}" src="${esc(fotoUrl(r.imagen_url, "chica"))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'${clase} foto--vacia',textContent:'Sin foto'}))" />`
+    : `<div class="${clase} foto--vacia">Sin foto</div>`;
+}
+
+function botonDescarte(clave, claseExtra = "") {
+  const c = encodeURIComponent(clave);
+  return descartados.tiene(clave)
+    ? `<button type="button" class="descartar-btn ${claseExtra}" data-clave="${c}" title="Volver a mostrar este aviso">Recuperar</button>`
+    : `<button type="button" class="descartar-btn ${claseExtra}" data-clave="${c}" title="No me gusta: ocultar este aviso" aria-label="No me gusta, ocultar">${claseExtra ? "No me gusta" : "✕"}</button>`;
+}
+
+function filaTabla(r, clave) {
+  const zona =
+    r.veredicto_zona === "ok"
+      ? `<span class="cell-main">P${Math.round(r.percentil_zona)}</span><span class="cell-sub">med. ${fmtNum(r.usd_m2_mediana_zona)}/m²</span>`
+      : '<span class="cell-sub">s/d</span>';
+  return `
+    <td class="col-foto">${fotoDe(r, "thumb")}</td>
+    <td class="col-propiedad">
+      <span class="cell-main">${esc(lugarDe(r))}</span>
+      <span class="cell-sub">${esc(resumenDe(r))}</span>
+      <span class="cell-badges">${badgesDe(r)}</span>
+    </td>
+    <td><span class="cell-main">${fmtNum(r.price_usd)}</span><span class="cell-sub">${r.usd_m2 ? `${fmtNum(r.usd_m2)}/m²` : ""}</span></td>
+    <td><span class="cell-main">${fmtSigned(r.brecha_neta_usd)}</span><span class="cell-sub">desc. ${fmtPct(r.pct_negociacion_estimado)}</span></td>
+    <td>${zona}</td>
+    <td class="col-acciones">
+      <a href="${esc(r.url)}" target="_blank" rel="noopener">Ver</a>
+      <button type="button" class="ficha-link">Ficha</button>
+      ${botonDescarte(clave)}
+    </td>
+  `;
+}
+
+function tarjetaGaleria(r, clave) {
+  const brecha = r.brecha_neta_usd;
+  const brechaTexto =
+    brecha === null || brecha === undefined
+      ? ""
+      : brecha > 0
+        ? `Hay que poner ${fmtNum(brecha)} USD`
+        : `Sobran ${fmtNum(Math.abs(brecha))} USD`;
+  return `
+    <article class="gcard${descartados.tiene(clave) ? " is-descartado" : ""}" data-clave="${encodeURIComponent(clave)}">
+      <div class="gcard__foto">
+        ${fotoDe(r, "gcard__img")}
+        <span class="gcard__badges">${badgesDe(r)}</span>
+      </div>
+      <div class="gcard__body">
+        <div class="gcard__precio">USD ${fmtNum(r.price_usd)}</div>
+        <div class="gcard__lugar">${esc(lugarDe(r))}</div>
+        <div class="gcard__resumen">${esc(resumenDe(r))}</div>
+        <div class="gcard__brecha${brecha !== null && brecha !== undefined && brecha <= 0 ? " is-sobra" : ""}">${brechaTexto}</div>
+        <div class="gcard__acciones">
+          <a href="${esc(r.url)}" target="_blank" rel="noopener">Ver aviso</a>
+          ${botonDescarte(clave)}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+// Galería: se pinta de a tandas para no crear 1.000+ tarjetas de una.
+const GALERIA_TANDA = 60;
+let galeriaRows = [];
+let galeriaMostradas = 0;
+let galeriaObserver = null;
+
+function pintarTandaGaleria() {
+  const cont = document.getElementById("vista-galeria");
+  const hasta = Math.min(galeriaMostradas + GALERIA_TANDA, galeriaRows.length);
+  const html = galeriaRows
+    .slice(galeriaMostradas, hasta)
+    .map((r) => tarjetaGaleria(r, `${r.portal}:${r.portal_id}`))
+    .join("");
+  document.getElementById("galeria-sentinel")?.remove();
+  cont.insertAdjacentHTML("beforeend", html);
+  galeriaMostradas = hasta;
+  if (galeriaMostradas < galeriaRows.length) {
+    cont.insertAdjacentHTML("beforeend", '<div id="galeria-sentinel" class="gallery__sentinel"></div>');
+    galeriaObserver.observe(document.getElementById("galeria-sentinel"));
+  }
+}
+
 function render() {
   const rows = sortRows(applyFilters(currentData));
-  const tbody = document.getElementById("listings-body");
-  tbody.innerHTML = "";
   const nDescartados = currentData.filter((r) => descartados.tiene(`${r.portal}:${r.portal_id}`)).length;
   document.getElementById("filter-descartados-label").textContent = `Ver descartados (${nDescartados})`;
+  document.getElementById("results-count").textContent = `${rows.length.toLocaleString("es-AR")} avisos`;
+  const sortValue = `${sortState.key}:${sortState.dir}`;
+  const sortSelect = document.getElementById("sort-select");
+  sortSelect.value = [...sortSelect.options].some((o) => o.value === sortValue) ? sortValue : "";
 
-  if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="21">Ningún aviso coincide con el filtro.</td></tr>';
+  const tbody = document.getElementById("listings-body");
+  const galeria = document.getElementById("vista-galeria");
+  tbody.innerHTML = "";
+  galeria.innerHTML = "";
+
+  if (vista === "galeria") {
+    galeriaRows = rows;
+    galeriaMostradas = 0;
+    if (rows.length === 0) galeria.innerHTML = '<p class="gallery__empty">Ningún aviso coincide con el filtro.</p>';
+    else pintarTandaGaleria();
     return;
   }
 
-  rowsByClave = {};
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6">Ningún aviso coincide con el filtro.</td></tr>';
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
   for (const r of rows) {
     const tr = document.createElement("tr");
-    const dup = r.n_duplicados ?? 1;
     const clave = `${r.portal}:${r.portal_id}`;
-    rowsByClave[clave] = r;
-    const esBuenPrecio = r.veredicto_zona === "ok" && r.percentil_zona !== null && r.percentil_zona <= 25;
-    const esPrecioAlto = r.veredicto_zona === "ok" && r.percentil_zona !== null && r.percentil_zona >= 75;
+    tr.dataset.clave = encodeURIComponent(clave);
     if (r.es_nuevo) tr.classList.add("is-new");
-    if (esBuenPrecio) tr.classList.add("is-good-value");
-    if (esPrecioAlto) tr.classList.add("is-high-value");
-    const esDescartado = descartados.tiene(clave);
-    if (esDescartado) tr.classList.add("is-descartado");
-    tr.innerHTML = `
-      <td>${r.es_nuevo ? '<span class="badge-new">Nuevo</span>' : "—"}</td>
-      <td>${r.barrio ?? "s/d"}</td>
-      <td>${r.tipo ?? "s/d"}</td>
-      <td>${fmtNum(r.price_usd)}</td>
-      <td>${fmtSigned(r.brecha_neta_usd)}</td>
-      <td>${fmtNum(r.usd_m2)}</td>
-      <td>${fmtNum(r.usd_m2_mediana_zona)}</td>
-      <td title="${r.veredicto_zona === "ok" ? `Sobre ${r.n_comparables_zona} comparables reales` : "Todavía no hay suficientes comparables en la zona"}">${
-        r.veredicto_zona === "ok"
-          ? `${Math.round(r.percentil_zona)}${esBuenPrecio ? ' <span class="badge-good">Buen precio</span>' : ""}${esPrecioAlto ? ' <span class="badge-high">Precio alto</span>' : ""}`
-          : "s/d"
-      }</td>
-      <td>${fmtPct(r.pct_negociacion_estimado)}</td>
-      <td>${fmtNum(r.m2_cubiertos)}</td>
-      <td>${r.ambientes ?? "s/d"}</td>
-      <td>${r.condicion ?? "s/d"}</td>
-      <td>${r.banos ?? "s/d"}</td>
-      <td>${r.cocheras ?? "s/d"}</td>
-      <td>${fmtNum(r.expensas_ars)}</td>
-      <td>${r.antiguedad ?? "s/d"}</td>
-      <td>${r.portal ?? "s/d"}</td>
-      <td>${dup > 1 ? `×${dup}` : "—"}</td>
-      <td>${fmtDate(r.captured_at)}</td>
-      <td>
-        <a href="${r.url}" target="_blank" rel="noopener">Ver</a>
-        <button type="button" class="ficha-link" data-clave="${encodeURIComponent(clave)}">Ficha</button>
-      </td>
-      <td>
-        <button type="button" class="descartar-btn" data-clave="${encodeURIComponent(clave)}" title="${esDescartado ? "Volver a mostrar este aviso" : "No me gusta: ocultar este aviso"}">${esDescartado ? "Recuperar" : "✕"}</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+    if (esBuenPrecio(r)) tr.classList.add("is-good-value");
+    if (esPrecioAlto(r)) tr.classList.add("is-high-value");
+    if (descartados.tiene(clave)) tr.classList.add("is-descartado");
+    tr.innerHTML = filaTabla(r, clave);
+    frag.appendChild(tr);
   }
+  tbody.appendChild(frag);
   updateTableFade();
+}
+
+function setVista(nueva) {
+  vista = nueva;
+  try {
+    localStorage.setItem("radar.vista", nueva);
+  } catch {}
+  document.getElementById("vista-tabla").hidden = nueva !== "tabla";
+  document.getElementById("vista-galeria").hidden = nueva !== "galeria";
+  document.querySelectorAll(".view-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.vista === nueva)));
+  if (currentData.length) render();
+}
+
+function setupVistaYOrden() {
+  galeriaObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        galeriaObserver.disconnect();
+        pintarTandaGaleria();
+      }
+    },
+    { rootMargin: "600px" },
+  );
+  document.querySelectorAll(".view-toggle button").forEach((b) => b.addEventListener("click", () => setVista(b.dataset.vista)));
+  document.getElementById("sort-select").addEventListener("change", (e) => {
+    if (!e.target.value) return;
+    const [key, dir] = e.target.value.split(":");
+    sortState = { key, dir };
+    render();
+  });
+  let inicial = null;
+  try {
+    inicial = localStorage.getItem("radar.vista");
+  } catch {}
+  if (window.innerWidth < 700) document.getElementById("filters-wrap").open = false;
+  // En el celular la tabla no entra cómoda: galería por defecto.
+  setVista(inicial || (window.innerWidth < 700 ? "galeria" : "tabla"));
 }
 
 function setupTableFade() {
@@ -371,27 +571,8 @@ function setupSortableHeaders() {
       if (sortState.key === key) {
         sortState.dir = sortState.dir === "asc" ? "desc" : "asc";
       } else {
-        sortState = { key, dir: "asc" };
+        sortState = { key, dir: key === "es_nuevo" || key === "m2_cubiertos" ? "desc" : "asc" };
       }
-      render();
-    });
-  });
-}
-
-function setupDescartes() {
-  document.getElementById("listings-body").addEventListener("click", (e) => {
-    const btn = e.target.closest(".descartar-btn");
-    if (!btn) return;
-    const clave = decodeURIComponent(btn.dataset.clave);
-    if (descartados.tiene(clave)) {
-      descartados.quitar(clave);
-      render();
-      return;
-    }
-    descartados.agregar(clave);
-    render();
-    mostrarToastDeshacer("Aviso descartado.", () => {
-      descartados.quitar(clave);
       render();
     });
   });
@@ -406,7 +587,7 @@ function setupFilters() {
 
 setupSortableHeaders();
 setupFilters();
-setupFichaModal();
-setupDescartes();
+setupAcciones();
 updateTableFade = setupTableFade();
+setupVistaYOrden();
 loadData();

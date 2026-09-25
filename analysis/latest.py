@@ -44,6 +44,7 @@ DISPLAY_COLUMNS = [
     "piso",
     "ascensor",
     "url",
+    "imagen_url",
     "captured_at",
     "n_duplicados",
     "es_nuevo",
@@ -66,6 +67,15 @@ def deduplicated_view(df: pd.DataFrame) -> pd.DataFrame:
 
     view = df.assign(n_duplicados=df.groupby("property_fingerprint")["portal_id"].transform("count"))
     return view.sort_values("price_usd").drop_duplicates(subset="property_fingerprint", keep="first")
+
+
+def _https(url: Any) -> str | None:
+    """Mercado Libre devuelve las fotos como `http://http2.mlstatic.com/...`
+    (el mismo host sirve https). El sitio va por https (GitHub Pages) y el
+    navegador bloquea o degrada imágenes http como contenido mixto."""
+    if not isinstance(url, str) or not url:
+        return None
+    return "https://" + url[len("http://"):] if url.startswith("http://") else url
 
 
 def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
@@ -102,9 +112,9 @@ def build_latest_json(df: pd.DataFrame) -> dict[str, Any]:
             # JSON.parse() en el navegador. Se reemplaza acá, después de
             # pasar por dict, donde ya no hay dtype de columna que fuerce
             # el cast de vuelta.
-            records.append(
-                {k: (None if isinstance(v, float) and math.isnan(v) else v) for k, v in record.items()}
-            )
+            clean = {k: (None if isinstance(v, float) and math.isnan(v) else v) for k, v in record.items()}
+            clean["imagen_url"] = _https(clean.get("imagen_url"))
+            records.append(clean)
 
     return {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),

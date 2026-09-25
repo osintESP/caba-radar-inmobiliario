@@ -32,101 +32,110 @@
       <div id="mi-propiedad-body"></div>
     </section>
 
-    <section class="card filters">
-      <label>
-        Portal
-        <select id="filter-portal"><option value="">Todos</option></select>
-      </label>
-      <label>
-        Barrio
-        <select id="filter-barrio"><option value="">Todos</option></select>
-      </label>
-      <label>
-        Tipo
-        <select id="filter-tipo"><option value="">Todos</option></select>
-      </label>
-      <label>
-        Condición
-        <select id="filter-condicion">
-          <option value="">Todas</option>
-          <option value="usado">Usado</option>
-          <option value="pozo">A estrenar / pozo</option>
+    <details class="filters-wrap" id="filters-wrap" open>
+      <summary>Filtros</summary>
+      <section class="card filters">
+        <label>
+          Portal
+          <select id="filter-portal"><option value="">Todos</option></select>
+        </label>
+        <label>
+          Barrio
+          <select id="filter-barrio"><option value="">Todos</option></select>
+        </label>
+        <label>
+          Tipo
+          <select id="filter-tipo"><option value="">Todos</option></select>
+        </label>
+        <label>
+          Condición
+          <select id="filter-condicion">
+            <option value="">Todas</option>
+            <option value="usado">Usado</option>
+            <option value="pozo">A estrenar / pozo</option>
+          </select>
+        </label>
+        <label>
+          Ambientes mín.
+          <input type="number" id="filter-ambientes-min" min="0" step="1" placeholder="—" value="3" />
+        </label>
+        <label>
+          Ambientes máx.
+          <input type="number" id="filter-ambientes-max" min="0" step="1" placeholder="—" />
+        </label>
+        <label>
+          Baños mín.
+          <input type="number" id="filter-banos-min" min="0" step="1" placeholder="—" />
+        </label>
+        <label>
+          Precio USD mín.
+          <input type="number" id="filter-precio-min" min="0" step="1000" placeholder="—" />
+        </label>
+        <label>
+          Precio USD máx.
+          <input type="number" id="filter-precio-max" min="0" step="1000" placeholder="—" />
+        </label>
+        <label>
+          Buscar (ej. apto_credito, quincho)
+          <input type="text" id="filter-tags" placeholder="—" />
+        </label>
+        <label class="filters__checkbox">
+          <input type="checkbox" id="filter-cochera" />
+          Con cochera
+        </label>
+        <label class="filters__checkbox">
+          <input type="checkbox" id="filter-nuevo" />
+          Solo nuevos
+        </label>
+        <label class="filters__checkbox">
+          <input type="checkbox" id="filter-descartados" />
+          <span id="filter-descartados-label">Ver descartados</span>
+        </label>
+      </section>
+    </details>
+
+    <div class="results-bar">
+      <span id="results-count" class="results-bar__count"></span>
+      <label class="results-bar__sort">
+        Ordenar por
+        <select id="sort-select">
+          <option value="brecha_neta_usd:asc">Lo que hay que poner (menor primero)</option>
+          <option value="price_usd:asc">Precio: menor a mayor</option>
+          <option value="price_usd:desc">Precio: mayor a menor</option>
+          <option value="usd_m2:asc">USD/m²: menor a mayor</option>
+          <option value="percentil_zona:asc">Más barato vs. su zona</option>
+          <option value="m2_cubiertos:desc">Más m² primero</option>
+          <option value="es_nuevo:desc">Nuevos primero</option>
         </select>
       </label>
-      <label>
-        Ambientes mín.
-        <input type="number" id="filter-ambientes-min" min="0" step="1" placeholder="—" value="3" />
-      </label>
-      <label>
-        Ambientes máx.
-        <input type="number" id="filter-ambientes-max" min="0" step="1" placeholder="—" />
-      </label>
-      <label>
-        Baños mín.
-        <input type="number" id="filter-banos-min" min="0" step="1" placeholder="—" />
-      </label>
-      <label>
-        Precio USD mín.
-        <input type="number" id="filter-precio-min" min="0" step="1000" placeholder="—" />
-      </label>
-      <label>
-        Precio USD máx.
-        <input type="number" id="filter-precio-max" min="0" step="1000" placeholder="—" />
-      </label>
-      <label>
-        Buscar (ej. apto_credito, quincho)
-        <input type="text" id="filter-tags" placeholder="—" />
-      </label>
-      <label class="filters__checkbox">
-        <input type="checkbox" id="filter-cochera" />
-        Con cochera
-      </label>
-      <label class="filters__checkbox">
-        <input type="checkbox" id="filter-nuevo" />
-        Solo nuevos
-      </label>
-      <label class="filters__checkbox">
-        <input type="checkbox" id="filter-descartados" />
-        <span id="filter-descartados-label">Ver descartados</span>
-      </label>
-    </section>
+      <div class="view-toggle" role="group" aria-label="Vista">
+        <button type="button" data-vista="tabla" aria-pressed="true">Tabla</button>
+        <button type="button" data-vista="galeria" aria-pressed="false">Galería</button>
+      </div>
+    </div>
 
-    <section class="card table-card">
+    <section id="vista-tabla" class="card table-card">
       <div class="table-scroll">
         <table id="listings-table">
           <thead>
             <tr>
-              <th data-key="es_nuevo" data-type="string" title="Aviso que no estaba en ningún snapshot anterior">Nuevo</th>
-              <th data-key="barrio" data-type="string">Barrio</th>
-              <th data-key="tipo" data-type="string">Tipo</th>
-              <th data-key="price_usd" data-type="number">Precio USD</th>
-              <th data-key="brecha_neta_usd" data-type="number" title="Cuánto hay que poner de más (o cuánto sobra, si es negativo) para pasarse de tu propiedad a esta candidata, neto de comisiones/sellos/escritura (config/costos.yaml), usando el descuento a pedir estimado de la columna 'Descuento a pedir'">Brecha neta</th>
-              <th data-key="usd_m2" data-type="number">USD/m²</th>
-              <th data-key="usd_m2_mediana_zona" data-type="number" title="Mediana de USD/m² entre comparables reales de su barrio/tipo/ambientes/m² (F4). Solo MELI: Zonaprop no expone m² cubierto en el listado.">Mediana zona</th>
-              <th data-key="percentil_zona" data-type="number" title="Dónde cae su USD/m² entre esos comparables: 0 = el más barato, 100 = el más caro. Solo MELI: Zonaprop no expone m² cubierto en el listado.">Percentil</th>
-              <th data-key="pct_negociacion_estimado" data-type="number" title="Descuento a pedir en la negociación (config/costos.yaml): franja alta si el percentil de zona supera 50 (está cara contra sus comparables), franja baja si no, piso conservador sin comparables suficientes. Heurística MVP, no el blend completo de la sección 3.3 del plan.">Desc. a pedir</th>
-              <th data-key="m2_cubiertos" data-type="number">m² cub.</th>
-              <th data-key="ambientes" data-type="number">Amb.</th>
-              <th data-key="condicion" data-type="string">Condición</th>
-              <th data-key="banos" data-type="number">Baños</th>
-              <th data-key="cocheras" data-type="number">Cochera</th>
-              <th data-key="expensas_ars" data-type="number">Expensas ARS</th>
-              <th data-key="antiguedad" data-type="number">Antig.</th>
-              <th data-key="portal" data-type="string">Portal</th>
-              <th data-key="n_duplicados" data-type="number" title="Cuántos avisos de otras inmobiliarias/portales se agruparon acá">Dup.</th>
-              <th data-key="captured_at" data-type="string">Capturado</th>
-              <th>Aviso / Ficha</th>
-              <th title="Ocultar este aviso de la lista (se guarda en este navegador). Se recupera tildando &quot;Ver descartados&quot;.">No me gusta</th>
+              <th class="col-foto"></th>
+              <th data-key="barrio">Propiedad</th>
+              <th data-key="price_usd">Precio USD</th>
+              <th data-key="brecha_neta_usd" title="Cuánto hay que poner de más (o cuánto sobra, si es negativo) para pasarse de tu propiedad a esta candidata, neto de comisiones/sellos/escritura (config/costos.yaml) y del descuento a pedir estimado">Brecha neta</th>
+              <th data-key="percentil_zona" title="Dónde cae su USD/m² entre comparables reales de su zona: 0 = el más barato, 100 = el más caro. Solo MELI: Zonaprop no expone m² cubierto en el listado.">Vs. zona</th>
+              <th class="col-acciones"></th>
             </tr>
           </thead>
           <tbody id="listings-body">
-            <tr><td colspan="21">Sin datos todavía.</td></tr>
+            <tr><td colspan="6">Sin datos todavía.</td></tr>
           </tbody>
         </table>
       </div>
       <div class="table-card__fade" id="table-fade"></div>
-      <p class="table-card__note">USD/m², Mediana zona y Percentil solo están disponibles para MELI por ahora: Zonaprop no expone m² cubierto en la página de listado. Piso, Ascensor y Tags se sacaron de la tabla por baja cobertura de datos — Tags sigue funcionando en el buscador de arriba.</p>
     </section>
+
+    <section id="vista-galeria" class="gallery" hidden></section>
 
     <section id="mercado" class="card mercado">
       <h2>Mercado</h2>
@@ -143,13 +152,19 @@
     <div class="modal__panel">
       <button type="button" class="modal__close" data-close="ficha" aria-label="Cerrar">×</button>
       <h3 id="ficha-title">Ficha de propiedad</h3>
+      <p id="ficha-titulo-aviso" class="ficha__titulo-aviso"></p>
+      <img id="ficha-foto" class="ficha__foto" alt="" hidden />
+      <dl id="ficha-datos" class="ficha__datos"></dl>
+      <div id="ficha-acciones" class="ficha__acciones"></div>
       <p id="ficha-descuento" class="modal__note" hidden></p>
+      <h4 class="ficha__subtitulo">Historial de precio</h4>
       <p id="ficha-empty" class="modal__empty" hidden>Todavía no hay suficiente historial de precios para este aviso (necesita aparecer en al menos 2 snapshots).</p>
       <canvas id="ficha-canvas" height="220"></canvas>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="fotos.js"></script>
   <script src="descartados.js"></script>
   <script src="app.js"></script>
 </body>

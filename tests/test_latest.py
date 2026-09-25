@@ -134,3 +134,27 @@ def test_percentil_zona_pasa_a_traves_para_cada_candidata():
     assert aviso["usd_m2_mediana_zona"] == 1850.0
     assert aviso["n_comparables_zona"] == 35
     assert aviso["veredicto_zona"] == "ok"
+
+
+def test_imagen_url_llega_al_sitio_y_se_pasa_a_https():
+    """Mercado Libre trae las fotos con http:// — en GitHub Pages (https)
+    el navegador las bloquearía como contenido mixto."""
+    df = pd.DataFrame(
+        [
+            _row(portal_id="MLA1", imagen_url="http://http2.mlstatic.com/D_1-C.jpg"),
+            _row(portal_id="ZP1", portal="zonaprop", imagen_url="https://imgar.zonapropcdn.com/avisos/1.jpg"),
+            _row(portal_id="MLA2", imagen_url=None),
+        ]
+    )
+    latest = build_latest_json(df)
+    por_id = {a["portal_id"]: a["imagen_url"] for a in latest["avisos"]}
+    assert por_id == {
+        "MLA1": "https://http2.mlstatic.com/D_1-C.jpg",
+        "ZP1": "https://imgar.zonapropcdn.com/avisos/1.jpg",
+        "MLA2": None,
+    }
+
+
+def test_snapshot_viejo_sin_imagen_url_no_rompe():
+    latest = build_latest_json(pd.DataFrame([_row()]))
+    assert latest["avisos"][0]["imagen_url"] is None

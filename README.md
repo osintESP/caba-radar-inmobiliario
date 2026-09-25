@@ -128,6 +128,20 @@ poco dentro del cupo diario. Un aviso sin coordenadas no se oculta (no hay
 dato para decidirlo). Zonaprop trae calle/altura pero no lat/lon, así que por
 ahora el perímetro solo aplica a ML. Sin polígono configurado no hay filtro.
 
+## Vista del sitio: tabla compacta, galería y ficha
+
+`index.html` muestra 6 columnas (foto, propiedad, precio, brecha neta, vs.
+zona, acciones) o, con el botón "Galería", tarjetas con foto grande (vista
+por defecto en el celular; la elección se recuerda en el navegador). Todo
+el detalle que no entra —baños, cochera, expensas, antigüedad, piso,
+portal, duplicados, historial de precio— está en la ficha, que se abre
+haciendo click en cualquier parte de la fila o tarjeta.
+
+Las fotos salen de `imagen_url` (scrapeada del listado de cada portal,
+~99% de cobertura). `analysis/latest.py` la pasa a https (ML la devuelve
+con http) y `site/fotos.js` pide a cada CDN el tamaño adecuado: la URL del
+listado de ML es una miniatura de 90×90.
+
 ## Avisos descartados ("no me gusta")
 
 Cada aviso tiene un botón para ocultarlo (✕ en la tabla de `index.html`,

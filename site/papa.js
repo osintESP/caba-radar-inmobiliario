@@ -144,8 +144,13 @@ function tarjeta(r) {
     ? `<button type="button" class="papa-listing__descartar" data-clave="${clave}">Volver a mostrar</button>`
     : `<button type="button" class="papa-listing__descartar" data-clave="${clave}">No me gusta, ocultar</button>`;
 
+  const foto = r.imagen_url
+    ? `<a href="${r.url}" target="_blank" rel="noopener"><img class="papa-listing__foto" src="${fotoUrl(r.imagen_url, "chica")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" /></a>`
+    : "";
+
   return `
     <article class="papa-listing">
+      ${foto}
       <div class="papa-listing__head">
         <span class="papa-listing__lugar">${r.barrio ?? "s/d"} · ${r.tipo ?? "s/d"} · ${r.ambientes ?? "s/d"} amb.</span>
         ${r.condicion === "pozo" ? '<span class="badge-new">A estrenar</span>' : ""}
